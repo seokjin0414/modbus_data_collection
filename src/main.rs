@@ -7,6 +7,6 @@ mod model {
 }
 
 #[tokio::main]
-fn main() {
+async fn main() {
     println!("Hello, world!");
 }
