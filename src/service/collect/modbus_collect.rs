@@ -3,14 +3,23 @@ use anyhow::{anyhow, Result};
 use serde_derive::Serialize;
 
 use crate::model::{
-    gems_3500_memory_map_schema_models::Gems3500MemoryMapTable,
-    modbus_register_models::ModbusRegister,
+    gems_3005::gems_3500_memory_map_models::Gems3500MemoryMapTable,
+    modbus::modbus_register_models::ModbusRegister,
 };
 use crate::service::read::read_from_addr::read_from_addr;
 
+
+const ADDRESSES: [u16; 18] = [
+    2420, 2422, 2424, 2430,
+    2436, 2438, 2440, 2449,
+    2452, 2454, 2456, 2465,
+    2468, 2470, 2472, 2481,
+    8000, 9000,
+];
+
 const NUMBER_OF_FLOORS: usize = 1;
 const NUMBER_OF_REG_ADDRESSES: usize = 13;
-const GEMS_REGISTER_ADDRESSSES: [u16; NUMBER_OF_REG_ADDRESSES] = [
+const GEMS_REGISTER_ADDRESSES: [u16; NUMBER_OF_REG_ADDRESSES] = [
     8000, 8018, 8036, 8054, 8072, 8090, 8126, 8144, 8162, 8180, 8198, 8216, 8234,
 ];
 
@@ -36,7 +45,7 @@ pub async fn modbus_collect() ->Result<bool> {
     let gems_table = Gems3500MemoryMapTable::from_csv()
         .map_err(|e| anyhow!("Failed to initialize Gems3500MemoryMapTable: {:?}", e))?;
 
-    for reg_addr in GEMS_REGISTER_ADDRESSSES {
+    for reg_addr in GEMS_REGISTER_ADDRESSES {
         let gems_3500_mem_map = gems_table.rows[match
             gems_table
             .idx_memory_address

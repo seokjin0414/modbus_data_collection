@@ -2,8 +2,13 @@ use anyhow::anyhow;
 use crate::service::collect::modbus_collect::modbus_collect;
 
 mod model {
-    pub mod gems_3500_memory_map_schema_models;
-    pub mod modbus_register_models;
+    pub mod gems_3005 {
+        pub mod gems_3500_memory_map_models;
+    }
+
+    pub mod modbus {
+        pub mod modbus_register_models;
+    }
 }
 
 mod service {

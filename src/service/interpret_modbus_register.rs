@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use crate::model::modbus_register_models::ModbusRegisterType;
+use crate::model::modbus::modbus_register_models::ModbusRegisterType;
 
 pub fn interpret_modbus_register_return_type(
     data: &[u16],

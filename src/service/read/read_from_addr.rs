@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use anyhow::{anyhow, Result};
 use tokio_modbus::client::tcp;
 use tracing::error;
-use crate::model::modbus_register_models::ModbusRegister;
+use crate::model::modbus::modbus_register_models::ModbusRegister;
 use super::read_from_register::read_from_register;
 
 pub async fn read_from_addr(
