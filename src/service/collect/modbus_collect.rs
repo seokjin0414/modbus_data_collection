@@ -8,13 +8,15 @@ use crate::model::{
 };
 use crate::service::read::read_from_addr::read_from_addr;
 
+const XX:u16 = 3;
 
+// test addr
 const ADDRESSES: [u16; 18] = [
-    2420, 2422, 2424, 2430,
-    2436, 2438, 2440, 2449,
-    2452, 2454, 2456, 2465,
-    2468, 2470, 2472, 2481,
-    8000, 9000,
+    2420+((XX-1)*64), 2420+((XX-1)*64)+2, 2420+((XX-1)*64)+4, 2420+((XX-1)*64)+10,
+    2420+((XX-1)*64)+16, 2420+((XX-1)*64)+18, 2420+((XX-1)*64)+20, 2420+((XX-1)*64)+29,
+    2420+((XX-1)*64)+32, 2420+((XX-1)*64)+34, 2420+((XX-1)*64)+36, 2420+((XX-1)*64)+45,
+    2420+((XX-1)*64)+48, 2420+((XX-1)*64)+50, 2420+((XX-1)*64)+52, 2420+((XX-1)*64)+61,
+    8000+((XX-1)*18), 9000+(XX-1)*4,
 ];
 
 const NUMBER_OF_FLOORS: usize = 1;
@@ -45,7 +47,7 @@ pub async fn modbus_collect() ->Result<bool> {
     let gems_table = Gems3500MemoryMapTable::from_csv()
         .map_err(|e| anyhow!("Failed to initialize Gems3500MemoryMapTable: {:?}", e))?;
 
-    for reg_addr in GEMS_REGISTER_ADDRESSES {
+    for reg_addr in ADDRESSES {
         let gems_3500_mem_map = gems_table.rows[match
             gems_table
             .idx_memory_address
