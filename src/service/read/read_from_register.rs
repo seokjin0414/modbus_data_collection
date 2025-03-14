@@ -2,7 +2,7 @@ use tokio_modbus::client::{Context, Reader};
 use anyhow::{anyhow, Result};
 
 use crate::model::modbus_register_models::ModbusRegisterType;
-use super::interpret_modbus_register::interpret_modbus_register_return_type;
+use crate::service::interpret_modbus_register::interpret_modbus_register_return_type;
 
 // Note that modbus words are big-endian 16-bit values.
 pub async fn read_from_register(
