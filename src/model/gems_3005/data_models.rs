@@ -9,9 +9,6 @@ use crate::model::modbus::modbus_register_models::ModbusRegister;
 
 pub const GEMS_3500_MODBUS: i32 = 43;
 pub const IAQ_MODBUS: i32 = 44;
-pub const ENERGY: &str = "energy";
-pub const RENEWABLE: &str = "renewable";
-pub const UNDEFINED: &str = "undefined";
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct MeasurementPoint {
@@ -61,11 +58,27 @@ impl CollectionSet {
         }
     }
 
-    pub fn to_set_data(&self, value: Option<f64>, recorded_at: DateTime<Utc>) -> SetData {
+    pub fn to_set_data(&self, recorded_at: DateTime<Utc>) -> SetData {
         SetData {
             building_id: self.building_id,
             measurement_point_id: self.measurement_point_id,
-            value,
+            total_a: None,
+            total_w: None,
+            total_pf: None,
+            r_v: None,
+            r_a: None,
+            r_w: None,
+            r_pf: None,
+            s_v: None,
+            s_a: None,
+            s_w: None,
+            s_pf: None,
+            t_v: None,
+            t_a: None,
+            t_w: None,
+            t_pf: None,
+            kwh_sum: None,
+            kwh_export_sum: None,
             recorded_at,
         }
     }
@@ -75,6 +88,22 @@ impl CollectionSet {
 pub struct SetData {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,
-    pub value: Option<f64>,
+    pub total_a: Option<f64>,
+    pub total_w: Option<f64>,
+    pub total_pf: Option<f64>,
+    pub r_v: Option<f64>,
+    pub r_a: Option<f64>,
+    pub r_w: Option<f64>,
+    pub r_pf: Option<f64>,
+    pub s_v: Option<f64>,
+    pub s_a: Option<f64>,
+    pub s_w: Option<f64>,
+    pub s_pf: Option<f64>,
+    pub t_v: Option<f64>,
+    pub t_a: Option<f64>,
+    pub t_w: Option<f64>,
+    pub t_pf: Option<f64>,
+    pub kwh_sum: Option<f64>,
+    pub kwh_export_sum: Option<f64>,
     pub recorded_at: DateTime<Utc>,
 }
