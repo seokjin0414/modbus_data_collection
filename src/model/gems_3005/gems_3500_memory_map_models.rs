@@ -36,7 +36,7 @@ impl From<Vec<Gems3500MemoryMap>> for Gems3500MemoryMapTable {
 
 impl Gems3500MemoryMapTable {
     pub fn from_csv() -> Result<Gems3500MemoryMapTable> {
-        let mut rdr = csv::Reader::from_path( "src/gems_3500_memory_map.csv")?;
+        let mut rdr = csv::Reader::from_path("src/files/gems_3500_memory_map.csv")?;
 
         let mut maps: Vec<Gems3500MemoryMap> = Vec::new();
         for result in rdr.deserialize() {

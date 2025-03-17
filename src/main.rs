@@ -3,6 +3,7 @@ use crate::service::collect::modbus_collect::modbus_collect;
 
 mod model {
     pub mod gems_3005 {
+        pub mod data_models;
         pub mod gems_3500_memory_map_models;
     }
 
@@ -13,6 +14,7 @@ mod model {
 
 mod service {
     pub mod collect {
+        pub mod gems_3500_modbus;
         pub mod modbus_collect;
     }
 
