@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use tokio_modbus::client::tcp;
 use tracing::error;
-use crate::model::gems_3005::data_models::{CollectionSet, SetData};
+use crate::model::gems_3005::data_models::{CollectionSet, SetData, SetValue};
 use crate::model::modbus::modbus_register_models::ModbusRegister;
 use super::read_from_register::read_from_register;
 
@@ -48,15 +48,23 @@ pub async fn read_from_point_map(
     let mut result = Vec::with_capacity(data.len());
 
     for set in data.into_iter() {
-        let value = read_from_register(
-            &mut ctx,
-            set.modbus_register.address.clone(),
-            set.modbus_register.value_type.clone(),
-            set.modbus_register.divide_by,
-        ).await
-            .map_err(|e| anyhow!("Could not read from register: {:?}", e))?;
+        let values = SetValue::new();
 
-        result.push(set.to_set_data(value, date));
+        for mr in set.modbus_register {
+            let v = read_from_register(
+                &mut ctx,
+                mr.address.clone(),
+                mr.value_type.clone(),
+                mr.divide_by,
+            )
+                .await
+                .map_err(|e| anyhow!("Could not read from register: {:?}", e))?;
+
+            values.push(v)
+
+        }
+
+        result.push(set.to_set_data(values, date));
     }
 
     Ok(result)
