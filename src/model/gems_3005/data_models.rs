@@ -1,7 +1,6 @@
 use std::net::IpAddr;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
-use dashmap::DashMap;
 use serde_derive::Deserialize;
 use uuid::Uuid;
 
@@ -16,7 +15,7 @@ pub struct MeasurementPoint {
     pub measurement_point_id: Uuid,
     pub host: IpAddr,
     pub port: i32,
-    pub channel: i16,
+    pub channel: u16,
 }
 
 impl MeasurementPoint {
