@@ -1,5 +1,6 @@
 use std::net::IpAddr;
 use std::sync::Arc;
+use std::time::Instant;
 use anyhow::{anyhow, Result};
 use chrono::Utc;
 use dashmap::DashMap;
@@ -20,7 +21,8 @@ use crate::{
 
 pub async fn collection_gems_3500_modbus(
 ) -> Result<Vec<SetData>> {
-    let measurement_points = MeasurementPoint::from_csv().await
+    let start = Instant::now();
+    let measurement_points = MeasurementPoint::from_csv()
         .map_err(|e| anyhow!("Could not fetch gems.csv data: {:?}", e))?;
     let len = measurement_points.len();
 
@@ -30,21 +32,22 @@ pub async fn collection_gems_3500_modbus(
     let point_map: DashMap<(IpAddr, u16), Vec<CollectionSet>> =
         measurement_points
             .into_iter()
-            .fold(DashMap::new(), |map, d| {
+            .try_fold(DashMap::new(), |map, d| -> Result<DashMap<(IpAddr, u16), Vec<CollectionSet>>> {
                 let addrs = register_from_ch(d.channel);
                 let mut registers = Vec::new();
 
                 for u in addrs {
-                    let map = gems_table.get_map(u)
+                    let gems_map = gems_table.get_map(u as i16)
                         .map_err(|e| anyhow!("Could not fetch gems_table: {}", e))?;
-                    registers.push(ModbusRegister::from(map))
+                    registers.push(ModbusRegister::from(gems_map));
                 }
 
                 map.entry((d.host, d.port as u16))
                     .or_default()
                     .push(CollectionSet::new(d, registers));
-                map
-            });
+                Ok(map)
+            })?;
+
 
     let date = Utc::now();
     let mut futures = FuturesUnordered::new();
@@ -80,6 +83,7 @@ pub async fn collection_gems_3500_modbus(
         }
     }
 
+    println!("spend time: {:?}", start.elapsed());
     Ok(vec)
 }
 

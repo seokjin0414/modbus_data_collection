@@ -48,22 +48,39 @@ pub async fn read_from_point_map(
     let mut result = Vec::with_capacity(data.len());
 
     for set in data.into_iter() {
-        let values = SetValue::new();
+        let mut values = SetValue::new();
 
-        for mr in set.modbus_register {
+        for (i, mr) in set.modbus_register.iter().enumerate() {
             let v = read_from_register(
                 &mut ctx,
-                mr.address.clone(),
+                mr.address,
                 mr.value_type.clone(),
                 mr.divide_by,
             )
                 .await
                 .map_err(|e| anyhow!("Could not read from register: {:?}", e))?;
 
-            values.push(v)
-
+            match i {
+                0  => values.total_a = v,
+                1  => values.total_w = v,
+                2  => values.total_pf = v,
+                3  => values.r_v = v,
+                4  => values.r_a = v,
+                5  => values.r_w = v,
+                6  => values.r_pf = v,
+                7  => values.s_v = v,
+                8  => values.s_a = v,
+                9  => values.s_w = v,
+                10 => values.s_pf = v,
+                11 => values.t_v = v,
+                12 => values.t_a = v,
+                13 => values.t_w = v,
+                14 => values.t_pf = v,
+                15 => values.kwh_sum = v,
+                16 => values.kwh_export_sum = v,
+                _ => {},
+            }
         }
-
         result.push(set.to_set_data(values, date));
     }
 

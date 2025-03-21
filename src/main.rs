@@ -1,5 +1,8 @@
 use anyhow::anyhow;
-use crate::service::collect::modbus_collect::modbus_collect;
+use crate::service::collect::{
+    gems_3500_modbus::collection_gems_3500_modbus,
+    modbus_collect::modbus_collect,
+};
 
 mod model {
     pub mod gems_3005 {
@@ -28,10 +31,17 @@ mod service {
 
 #[tokio::main]
 async fn main() {
-    let _ = modbus_collect()
+    // let _ = modbus_collect()
+    //     .await
+    //     .map_err(|e| {
+    //         println!("fail to bems_modbus_collect: {:?}", e);
+    //         anyhow!(e)
+    //     });
+
+    let _ = collection_gems_3500_modbus()
         .await
         .map_err(|e| {
-            println!("fail to bems_modbus_collect: {:?}", e);
+            println!("fail to collection_gems_3500_modbus: {:?}", e);
             anyhow!(e)
         });
 }
