@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::model::modbus::modbus_register_models::ModbusRegister;
@@ -70,6 +70,7 @@ impl CollectionSet {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct SetData {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,
