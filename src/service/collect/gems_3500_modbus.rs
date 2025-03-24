@@ -25,10 +25,8 @@ pub async fn collection_gems_3500_modbus(
     let start = Instant::now();
     let measurement_points = state.measurement_point.clone();
     let len = measurement_points.len();
-
     let gems_table = state.gems_3500_memory_map_table.clone();
 
-    let start_1 = Instant::now();
     let point_map: DashMap<(IpAddr, u16), Vec<CollectionSet>> =
         measurement_points
             .into_iter()
@@ -47,12 +45,10 @@ pub async fn collection_gems_3500_modbus(
                     .push(CollectionSet::new(d, registers));
                 Ok(map)
             })?;
-    println!("point_map spend time: {:?}", start_1.elapsed());
 
     let date = Utc::now();
     let mut futures = FuturesUnordered::new();
 
-    let start_2 = Instant::now();
     for (key, value) in point_map.into_iter() {
         let date = date.clone();
         let ip = key.0;
@@ -71,11 +67,9 @@ pub async fn collection_gems_3500_modbus(
 
         futures.push(future);
     }
-    println!("point_map.into_iter() spend time: {:?}", start_2.elapsed());
-
 
     let mut vec = Vec::with_capacity(len);
-    let start_3 = Instant::now();
+    let checker = Instant::now();
     while let Some(res) = futures.next().await {
         match res {
             Ok(set_data_list) => {
@@ -85,8 +79,7 @@ pub async fn collection_gems_3500_modbus(
             }
         }
     }
-    println!("futures wait spend time: {:?}", start_3.elapsed());
-    println!("spend time: {:?}", start.elapsed());
+    println!("futures wait spend time: {:?}", checker.elapsed());
     Ok(())
 }
 
