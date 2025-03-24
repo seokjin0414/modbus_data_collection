@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::sync::Arc;
 use std::time::Instant;
 use anyhow::{anyhow, Result};
 use chrono::Utc;
@@ -8,25 +9,24 @@ use futures::stream::{FuturesUnordered, StreamExt};
 
 use crate::{
     model::{
-        gems_3005::{
-            data_models::{CollectionSet, MeasurementPoint, SetData},
-            gems_3500_memory_map_models::Gems3500MemoryMapTable,
-        },
+        gems_3005::data_models::CollectionSet,
         modbus::modbus_register_models::ModbusRegister,
     },
 
-    service::read::read_from_addr::read_from_point_map,
+    service::{
+        read::read_from_addr::read_from_point_map,
+        server::get_state::ServerState,
+    },
 };
 
 pub async fn collection_gems_3500_modbus(
-) -> Result<Vec<SetData>> {
+    state: &Arc<ServerState>
+) -> Result<()> {
     let start = Instant::now();
-    let measurement_points = MeasurementPoint::from_csv()
-        .map_err(|e| anyhow!("Could not fetch gems.csv data: {:?}", e))?;
+    let measurement_points = state.measurement_point.clone();
     let len = measurement_points.len();
 
-    let gems_table = Gems3500MemoryMapTable::from_csv()
-        .map_err(|e| anyhow!("Could not fetch gems_3500_memory_map.csv data: {:?}", e))?;
+    let gems_table = state.gems_3500_memory_map_table.clone();
 
     let start_1 = Instant::now();
     let point_map: DashMap<(IpAddr, u16), Vec<CollectionSet>> =
@@ -87,7 +87,7 @@ pub async fn collection_gems_3500_modbus(
     }
     println!("futures wait spend time: {:?}", start_3.elapsed());
     println!("spend time: {:?}", start.elapsed());
-    Ok(vec)
+    Ok(())
 }
 
 // Hard coding (required data type)

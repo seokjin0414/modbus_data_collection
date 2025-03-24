@@ -1,5 +1,6 @@
-use anyhow::anyhow;
-use crate::service::collect::gems_3500_modbus::collection_gems_3500_modbus;
+use anyhow::{anyhow, Result};
+use tracing::info;
+use crate::service::server::server_init::server_initializer;
 
 mod model {
     pub mod gems_3005 {
@@ -22,15 +23,25 @@ mod service {
         pub mod read_from_register;
     }
 
+    pub mod server {
+        pub mod get_state;
+        pub mod server_init;
+    }
+
+    pub mod task {
+        pub mod common_scheduling;
+        pub mod task_init;
+    }
+
     pub mod interpret_modbus_register;
 }
 
-#[tokio::main]
-async fn main() {
-    let _ = collection_gems_3500_modbus()
+#[tokio::main(flavor = "multi_thread")]
+async fn main() -> Result<()> {
+    let result = server_initializer()
         .await
-        .map_err(|e| {
-            println!("fail to collection_gems_3500_modbus: {:?}", e);
-            anyhow!(e)
-        });
+        .map_err(|e| anyhow!("{:?}", e))?;
+
+    info!("Server successfully terminated: {}", result);
+    Ok(())
 }

@@ -3,10 +3,33 @@ name = "modbus_data_collection"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = 3
+codegen-units = 1
+debug = false
+incremental = false
+strip = true
+lto = true
+panic = "unwind"
+
 [dependencies]
 anyhow = "1.0.96"
 
 tracing = "0.1.41"
+
+axum = { version = "0.8.1", default-features = false, features = [
+    "form",
+    "http1",
+    "json",
+    "matched-path",
+    "original-uri",
+    "query",
+    "tokio",
+    "tower-log",
+    "tracing",
+    "macros",
+    "ws",
+] }
 
 tokio = { version = "1.44.1", default-features = false, features = [
     "macros",
@@ -23,3 +46,5 @@ chrono = "0.4.39"
 dashmap = "7.0.0-rc2"
 futures = "0.3.31"
 uuid = { version = "1.16.0", features = ["serde", "fast-rng", "v4"] }
+tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["cors"] }
