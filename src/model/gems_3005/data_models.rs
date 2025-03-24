@@ -1,5 +1,4 @@
 use std::net::IpAddr;
-use std::time::Instant;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_derive::Deserialize;
@@ -18,7 +17,6 @@ pub struct MeasurementPoint {
 
 impl MeasurementPoint {
     pub fn from_csv() -> Result<Vec<MeasurementPoint>> {
-        let start = Instant::now();
         let mut rdr = csv::Reader::from_path("src/files/gems.csv")?;
 
         let mut vec: Vec<MeasurementPoint> = Vec::new();
@@ -27,7 +25,6 @@ impl MeasurementPoint {
             vec.push(record);
         }
 
-        println!("MeasurementPoint from_csv spend time: {:?}", start.elapsed());
         Ok(vec)
     }
 }

@@ -1,4 +1,3 @@
-use std::time::Instant;
 use anyhow::{anyhow, Result};
 use dashmap::DashMap;
 use serde_derive::Deserialize;
@@ -14,6 +13,7 @@ pub struct Gems3500MemoryMap {
     pub divide_by: Option<i16>,
 }
 
+#[derive(Clone)]
 pub struct Gems3500MemoryMapTable {
     pub rows: Vec<Gems3500MemoryMap>,
     pub idx_memory_address: DashMap<i16, usize>,
@@ -36,7 +36,6 @@ impl From<Vec<Gems3500MemoryMap>> for Gems3500MemoryMapTable {
 
 impl Gems3500MemoryMapTable {
     pub fn from_csv() -> Result<Gems3500MemoryMapTable> {
-        let start = Instant::now();
         let mut rdr = csv::Reader::from_path("src/files/gems_3500_memory_map.csv")?;
 
         let mut maps: Vec<Gems3500MemoryMap> = Vec::new();
@@ -50,7 +49,6 @@ impl Gems3500MemoryMapTable {
             idx_memory_address.insert(mmap.memory_address, idx);
         }
 
-        println!("Gems3500MemoryMapTable from_csv spend time: {:?}", start.elapsed());
         Ok(Self {
             rows: maps,
             idx_memory_address,
