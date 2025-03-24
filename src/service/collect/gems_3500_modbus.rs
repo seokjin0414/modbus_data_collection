@@ -82,9 +82,9 @@ pub async fn collection_gems_3500_modbus(
     }
     println!("futures wait spend time: {:?}", checker.elapsed());
 
-    post_axum_server_renewal_data(vec)
-        .await
-        .map_err(|e| anyhow!("Request failed: {:?}", e))?;
+    // post_axum_server_renewal_data(vec)
+    //     .await
+    //     .map_err(|e| anyhow!("Request failed: {:?}", e))?;
 
     Ok(())
 }
