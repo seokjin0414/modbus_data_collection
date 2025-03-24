@@ -6,6 +6,7 @@ use chrono::Utc;
 use dashmap::DashMap;
 use tracing::error;
 use futures::stream::{FuturesUnordered, StreamExt};
+use reqwest::Client;
 
 use crate::{
     model::{
@@ -18,11 +19,11 @@ use crate::{
         server::get_state::ServerState,
     },
 };
+use crate::model::gems_3005::data_models::SetData;
 
 pub async fn collection_gems_3500_modbus(
     state: &Arc<ServerState>
 ) -> Result<()> {
-    let start = Instant::now();
     let measurement_points = state.measurement_point.clone();
     let len = measurement_points.len();
     let gems_table = state.gems_3500_memory_map_table.clone();
@@ -80,6 +81,11 @@ pub async fn collection_gems_3500_modbus(
         }
     }
     println!("futures wait spend time: {:?}", checker.elapsed());
+
+    post_axum_server_renewal_data(vec)
+        .await
+        .map_err(|e| anyhow!("Request failed: {:?}", e))?;
+
     Ok(())
 }
 
@@ -94,4 +100,18 @@ pub fn register_from_ch (ch: u16) -> Vec<u16> {
     ];
 
     addr.to_vec()
+}
+
+pub async fn post_axum_server_renewal_data(
+    params: Vec<SetData>,
+) -> Result<()> {
+    let client = Client::new();
+
+    client
+        .post("")
+        .json(&params)
+        .send()
+        .await
+        .map_err(|e| anyhow!("Request failed: {:?}", e))?;
+    Ok(())
 }
