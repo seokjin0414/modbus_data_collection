@@ -1,5 +1,5 @@
 [package]
-name = "modbus_data_collection"
+name = "data_collection"
 version = "0.1.0"
 edition = "2024"
 

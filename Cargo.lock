@@ -280,6 +280,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "575f75dfd25738df5b91b8e43e14d44bda14637a58fae779fd2b064f8bf3e010"
 
 [[package]]
+name = "data_collection"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "csv",
+ "dashmap",
+ "futures",
+ "serde",
+ "serde_derive",
+ "tokio",
+ "tokio-modbus",
+ "tower",
+ "tower-http",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -611,26 +631,6 @@ dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys",
-]
-
-[[package]]
-name = "modbus_data_collection"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "csv",
- "dashmap",
- "futures",
- "serde",
- "serde_derive",
- "tokio",
- "tokio-modbus",
- "tower",
- "tower-http",
- "tracing",
- "uuid",
 ]
 
 [[package]]
