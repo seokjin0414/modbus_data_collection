@@ -70,7 +70,7 @@ impl CollectionSet {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SetData {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,
