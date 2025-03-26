@@ -22,6 +22,7 @@ mod service {
     pub mod read {
         pub mod read_from_addr;
         pub mod read_from_register;
+        pub mod interpret_modbus_register;
     }
 
     pub mod server {
@@ -37,8 +38,6 @@ mod service {
     pub mod utils {
         pub mod create_time;
     }
-
-    pub mod interpret_modbus_register;
 }
 
 #[tokio::main(flavor = "multi_thread")]
