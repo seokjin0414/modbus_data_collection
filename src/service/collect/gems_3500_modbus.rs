@@ -10,16 +10,18 @@ use reqwest::Client;
 
 use crate::{
     model::{
-        gems_3005::data_models::CollectionSet,
+        gems_3005::data_models::{
+            CollectionSet, SetData,
+        },
         modbus::modbus_register_models::ModbusRegister,
     },
 
     service::{
         read::read_from_addr::read_from_point_map,
         server::get_state::ServerState,
+        utils::create_time::{utc_now_ago, MINUTE},
     },
 };
-use crate::model::gems_3005::data_models::SetData;
 
 pub async fn collection_gems_3500_modbus(
     state: &Arc<ServerState>
@@ -47,7 +49,7 @@ pub async fn collection_gems_3500_modbus(
                 Ok(map)
             })?;
 
-    let date = Utc::now();
+    let date = utc_now_ago(0, MINUTE);
     let mut futures = FuturesUnordered::new();
 
     for (key, value) in point_map.into_iter() {

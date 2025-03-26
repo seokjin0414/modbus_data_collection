@@ -34,6 +34,10 @@ mod service {
         pub mod task_init;
     }
 
+    pub mod utils {
+        pub mod create_time;
+    }
+
     pub mod interpret_modbus_register;
 }
 
