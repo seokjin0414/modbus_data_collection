@@ -2,7 +2,10 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use tokio_modbus::client::tcp;
+use tokio_modbus::{
+    client::tcp,
+    Slave,
+};
 use futures::future::join_all;
 use tokio::sync::Mutex;
 use crate::model::gems_3005::data_models::{CollectionSet, SetData, SetValue};
@@ -11,14 +14,15 @@ use super::read_from_register::read_from_register;
 pub async fn read_from_point_map(
     ip: IpAddr,
     port: u16,
+    unit_id: u8,
     data: Vec<CollectionSet>,
     date: DateTime<Utc>
 ) -> Result<Vec<SetData>> {
     let addr = SocketAddr::new(ip, port);
     let ctx = Arc::new(Mutex::new(
-        tcp::connect(addr)
+        tcp::connect_slave(addr, Slave::from(unit_id))
             .await
-            .map_err(|e| anyhow!("Could not TCP connect to {}: {:?}", addr, e))?
+            .map_err(|e| anyhow!("Could not TCP connect_slave to {}: {:?}", addr, e))?
     ));
 
     let mut result = Vec::with_capacity(data.len());

@@ -12,6 +12,7 @@ pub struct MeasurementPoint {
     pub measurement_point_id: Uuid,
     pub host: IpAddr,
     pub port: i32,
+    pub unit_id: u8,
     pub channel: u16,
 }
 

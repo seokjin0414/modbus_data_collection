@@ -29,10 +29,10 @@ pub async fn collection_gems_3500_modbus(
     let len = measurement_points.len();
     let gems_table = state.gems_3500_memory_map_table.clone();
 
-    let point_map: DashMap<(IpAddr, u16), Vec<CollectionSet>> =
+    let point_map: DashMap<(IpAddr, u16, u8), Vec<CollectionSet>> =
         measurement_points
             .into_iter()
-            .try_fold(DashMap::new(), |map, d| -> Result<DashMap<(IpAddr, u16), Vec<CollectionSet>>> {
+            .try_fold(DashMap::new(), |map, d| -> Result<DashMap<(IpAddr, u16, u8), Vec<CollectionSet>>> {
                 let addrs = register_from_ch(d.channel);
                 let mut registers = Vec::new();
 
@@ -42,7 +42,7 @@ pub async fn collection_gems_3500_modbus(
                     registers.push(ModbusRegister::from(gems_map));
                 }
 
-                map.entry((d.host, d.port as u16))
+                map.entry((d.host, d.port as u16, d.unit_id))
                     .or_default()
                     .push(CollectionSet::new(d, registers));
                 Ok(map)
@@ -55,10 +55,11 @@ pub async fn collection_gems_3500_modbus(
         let date = date.clone();
         let ip = key.0;
         let port = key.1;
+        let unit_id = key.2;
         let data = value;
 
         let future = async move {
-            match read_from_point_map(ip, port, data, date).await {
+            match read_from_point_map(ip, port, unit_id, data, date).await {
                 Ok(result) => Ok(result),
                 Err(e) => {
                     error!("Failed to read from {}:{} - {:?}", ip, port, e);
@@ -82,6 +83,7 @@ pub async fn collection_gems_3500_modbus(
         }
     }
     println!("futures wait spend time: {:?}", checker.elapsed());
+    println!("{:?}", vec);
 
     // post_axum_server_renewal_data(vec)
     //     .await
