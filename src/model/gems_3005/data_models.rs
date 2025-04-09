@@ -49,6 +49,7 @@ impl CollectionSet {
         SetData {
             building_id: self.building_id,
             measurement_point_id: self.measurement_point_id,
+            wire: values.wire,
             total_a: values.total_a,
             total_w: values.total_w,
             total_pf: values.total_pf,
@@ -75,6 +76,7 @@ impl CollectionSet {
 pub struct SetData {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,
+    pub wire: Option<f64>,
     pub total_a: Option<f64>,
     pub total_w: Option<f64>,
     pub total_pf: Option<f64>,
@@ -96,6 +98,7 @@ pub struct SetData {
 }
 
 pub struct SetValue {
+    pub wire: Option<f64>,
     pub total_a: Option<f64>,
     pub total_w: Option<f64>,
     pub total_pf: Option<f64>,
@@ -118,6 +121,7 @@ pub struct SetValue {
 impl SetValue {
     pub fn new() -> Self {
         SetValue {
+            wire: None,
             total_a: None,
             total_w: None,
             total_pf: None,
