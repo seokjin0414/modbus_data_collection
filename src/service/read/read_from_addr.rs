@@ -8,6 +8,7 @@ use tokio_modbus::{
 };
 use futures::future::join_all;
 use tokio::sync::Mutex;
+use tracing::error;
 use crate::model::gems_3005::data_models::{CollectionSet, SetData, SetValue};
 use super::read_from_register::read_from_register;
 
@@ -19,11 +20,15 @@ pub async fn read_from_point_map(
     date: DateTime<Utc>
 ) -> Result<Vec<SetData>> {
     let addr = SocketAddr::new(ip, port);
-    let ctx = Arc::new(Mutex::new(
-        tcp::connect_slave(addr, Slave::from(unit_id))
-            .await
-            .map_err(|e| anyhow!("Could not TCP connect_slave to {}: {:?}", addr, e))?
-    ));
+    let ctx = match tcp::connect_slave(addr, Slave::from(unit_id))
+        .await
+    {
+        Ok(context) => Arc::new(Mutex::new(context)),
+        Err(e) => {
+            error!("Could not TCP connect_slave to {}: {:?}", addr, e);
+            return Ok(vec![]);
+        }
+    };
 
     let mut result = Vec::with_capacity(data.len());
 
@@ -40,11 +45,15 @@ pub async fn read_from_point_map(
                 async move {
                     // ctx Arc<Mutex<_>> 이므로, lock 후 사용
                     let mut conn = ctx.lock().await;
-                    let v = read_from_register(&mut *conn, addr, value_type, divide_by)
+                    let v = match read_from_register(&mut *conn, addr, value_type, divide_by)
                         .await
-                        .map_err(|e|
-                            anyhow!("Could not read from register at address {}: {:?}", addr, e)
-                        )?;
+                    {
+                        Ok(f) => f,
+                        Err(e) => {
+                            error!("Could not read from register at address {}: {:?}", addr, e);
+                            None
+                        }
+                    };
 
                     Ok((i, v)) as Result<(usize, Option<f64>)>
                 }

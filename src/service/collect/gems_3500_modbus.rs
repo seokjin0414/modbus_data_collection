@@ -83,6 +83,7 @@ pub async fn collection_gems_3500_modbus(
         }
     }
     println!("futures wait spend time: {:?}", checker.elapsed());
+    println!("{:?}", vec);
 
     // post_axum_server_renewal_data(vec)
     //     .await
