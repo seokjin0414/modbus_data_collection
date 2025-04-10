@@ -66,7 +66,7 @@ pub async fn read_from_point_map(
         for res in register_results {
             let (i, v) = res?;
             match i {
-                0 => values.total_a = v,
+                0 => values.wire = v,
                 1 => values.total_a = v,
                 2 => values.total_w = v,
                 3 => values.total_pf = v,
