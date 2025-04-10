@@ -1,5 +1,5 @@
+use anyhow::{Result, anyhow};
 use tokio_modbus::client::{Context, Reader};
-use anyhow::{anyhow, Result};
 
 use crate::{
     model::modbus::modbus_register_models::ModbusRegisterType,
@@ -14,18 +14,11 @@ pub async fn read_from_register(
     divide_by: i16,
 ) -> Result<Option<f64>> {
     let data = ctx
-        .read_input_registers(
-            reg_address,
-            register_count(&value_type)
-        )
+        .read_input_registers(reg_address, register_count(&value_type))
         .await
         .map_err(|e| anyhow!("Failed to fetch data: {:?}", e))??;
 
-    interpret_modbus_register_return_type(
-        &data,
-        value_type,
-        divide_by
-    )
+    interpret_modbus_register_return_type(&data, value_type, divide_by)
 }
 
 fn register_count(value_type: &ModbusRegisterType) -> u16 {

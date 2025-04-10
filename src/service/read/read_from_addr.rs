@@ -1,28 +1,23 @@
+use super::read_from_register::read_from_register;
+use crate::model::gems_3005::data_models::{CollectionSet, SetData, SetValue};
+use anyhow::{Result, anyhow};
+use chrono::{DateTime, Utc};
+use futures::future::join_all;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
-use anyhow::{anyhow, Result};
-use chrono::{DateTime, Utc};
-use tokio_modbus::{
-    client::tcp,
-    Slave,
-};
-use futures::future::join_all;
 use tokio::sync::Mutex;
+use tokio_modbus::{Slave, client::tcp};
 use tracing::error;
-use crate::model::gems_3005::data_models::{CollectionSet, SetData, SetValue};
-use super::read_from_register::read_from_register;
 
 pub async fn read_from_point_map(
     ip: IpAddr,
     port: u16,
     unit_id: u8,
     data: Vec<CollectionSet>,
-    date: DateTime<Utc>
+    date: DateTime<Utc>,
 ) -> Result<Vec<SetData>> {
     let addr = SocketAddr::new(ip, port);
-    let ctx = match tcp::connect_slave(addr, Slave::from(unit_id))
-        .await
-    {
+    let ctx = match tcp::connect_slave(addr, Slave::from(unit_id)).await {
         Ok(context) => Arc::new(Mutex::new(context)),
         Err(e) => {
             error!("Could not TCP connect_slave to {}: {:?}", addr, e);
@@ -45,8 +40,7 @@ pub async fn read_from_point_map(
                 async move {
                     // ctx Arc<Mutex<_>> 이므로, lock 후 사용
                     let mut conn = ctx.lock().await;
-                    let v = match read_from_register(&mut *conn, addr, value_type, divide_by)
-                        .await
+                    let v = match read_from_register(&mut *conn, addr, value_type, divide_by).await
                     {
                         Ok(f) => f,
                         Err(e) => {

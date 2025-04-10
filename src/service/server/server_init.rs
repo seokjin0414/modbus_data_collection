@@ -1,21 +1,20 @@
 use anyhow::{Result, anyhow};
-use std::str::FromStr;
-use std::sync::Arc;
-use std::net::SocketAddr;
-use std::time::Instant;
-use tower_http::cors::CorsLayer;
 use axum::extract::DefaultBodyLimit;
 use axum::http::{HeaderName, header};
+use std::net::SocketAddr;
+use std::str::FromStr;
+use std::sync::Arc;
+use std::time::Instant;
+use tower_http::cors::CorsLayer;
 use tracing::info;
 
 use crate::service::{
-    server::get_state::{get_state, ServerState},
-    task::task_init::task_init
+    server::get_state::{ServerState, get_state},
+    task::task_init::task_init,
 };
 
 #[inline]
-pub async fn server_initializer(
-) -> Result<String> {
+pub async fn server_initializer() -> Result<String> {
     let start = Instant::now();
 
     let hosting_address = SocketAddr::from_str("[::]:30000")
@@ -74,13 +73,20 @@ pub async fn server_initializer(
         .await
         .map_err(|e| anyhow!("Could not schedule tasks: {:?}", e))?;
 
-    info!("sever started successfully on {} in {:?}.", hosting_address, start.elapsed());
+    info!(
+        "sever started successfully on {} in {:?}.",
+        hosting_address,
+        start.elapsed()
+    );
 
     // 여기서 앱을 Axum으로 서빙.
     // Serve app with Axum here.
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .map_err(|e| anyhow!("Axum could not serve app: {:?}", e))?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .map_err(|e| anyhow!("Axum could not serve app: {:?}", e))?;
 
     Ok(String::from("Server exiting."))
 }

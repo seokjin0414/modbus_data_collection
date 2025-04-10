@@ -1,5 +1,5 @@
-use serde_derive::Serialize;
 use crate::model::gems_3005::gems_3500_memory_map_models::Gems3500MemoryMap;
+use serde_derive::Serialize;
 
 #[derive(Serialize, Clone, Debug)]
 pub enum ModbusRegisterType {
