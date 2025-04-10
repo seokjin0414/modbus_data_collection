@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use dashmap::DashMap;
 use serde_derive::Deserialize;
 
@@ -56,12 +56,12 @@ impl Gems3500MemoryMapTable {
     }
 
     pub fn get_map(&self, register: i16) -> Result<Gems3500MemoryMap> {
-        let idx = self
-            .idx_memory_address
-            .get(&register)
-            .ok_or_else(||
-                anyhow!("GEMS_REGISTER_ADDRESSES misconfigured; reg_addr {} invalid. Aborting.", register)
-            )?;
+        let idx = self.idx_memory_address.get(&register).ok_or_else(|| {
+            anyhow!(
+                "GEMS_REGISTER_ADDRESSES misconfigured; reg_addr {} invalid. Aborting.",
+                register
+            )
+        })?;
 
         Ok(self.rows[*idx].clone())
     }

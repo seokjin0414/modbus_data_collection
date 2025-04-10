@@ -1,8 +1,8 @@
+use anyhow::{Result, anyhow};
+use chrono::{DateTime, LocalResult, TimeZone, Utc};
 use std::future::Future;
 use std::sync::Arc;
-use anyhow::{anyhow, Result};
-use chrono::{DateTime, LocalResult, TimeZone, Utc};
-use tokio::time::{interval_at, Duration, Instant};
+use tokio::time::{Duration, Instant, interval_at};
 use tracing::info;
 
 use crate::service::server::get_state::ServerState;
@@ -20,16 +20,20 @@ where
     F: Fn(Arc<ServerState>) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    let initial_delay = next_run_time_delay(cycle_seconds as i64)
-        .map_err(|e| anyhow!("{:?}", e))?;
+    let initial_delay =
+        next_run_time_delay(cycle_seconds as i64).map_err(|e| anyhow!("{:?}", e))?;
 
     let total_initial_delay = initial_delay + Duration::from_secs(delay_seconds);
 
     let now = Utc::now();
-    let first_run_time = now + chrono::Duration::from_std(total_initial_delay)
-        .map_err(|e| anyhow!("Conversion failed: {:?}", e))?;
+    let first_run_time = now
+        + chrono::Duration::from_std(total_initial_delay)
+            .map_err(|e| anyhow!("Conversion failed: {:?}", e))?;
 
-    info!("{:?}", schedule_message(&task_descriptor, now, first_run_time));
+    info!(
+        "{:?}",
+        schedule_message(&task_descriptor, now, first_run_time)
+    );
 
     let start_time = Instant::now() + total_initial_delay;
     let mut interval_timer = interval_at(start_time, Duration::from_secs(cycle_seconds));
@@ -58,11 +62,14 @@ pub fn next_run_time_delay(cycle_seconds: i64) -> Result<Duration> {
         LocalResult::Single(ts) => ts,
         LocalResult::Ambiguous(ts_1, _) => ts_1,
         LocalResult::None => {
-            return Err(anyhow!("Could not determine the next run time mark due to a time gap."));
+            return Err(anyhow!(
+                "Could not determine the next run time mark due to a time gap."
+            ));
         }
     };
 
     let delay = next_time - now;
-    delay.to_std()
+    delay
+        .to_std()
         .map_err(|e| anyhow!("Failed to convert delay to std duration: {:?}", e))
 }

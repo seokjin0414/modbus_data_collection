@@ -1,7 +1,7 @@
-use std::net::IpAddr;
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
+use std::net::IpAddr;
 use uuid::Uuid;
 
 use crate::model::modbus::modbus_register_models::ModbusRegister;
@@ -38,7 +38,7 @@ pub struct CollectionSet {
 
 impl CollectionSet {
     pub fn new(point: MeasurementPoint, registers: Vec<ModbusRegister>) -> Self {
-        CollectionSet{
+        CollectionSet {
             measurement_point_id: point.measurement_point_id,
             building_id: point.building_id,
             modbus_register: registers,
