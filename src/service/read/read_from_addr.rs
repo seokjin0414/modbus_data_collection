@@ -13,6 +13,7 @@ pub async fn read_from_point_map(
     ip: IpAddr,
     port: u16,
     unit_id: u8,
+    export_sum_status: bool,
     data: Vec<CollectionSet>,
     date: DateTime<Utc>,
 ) -> Result<Vec<SetData>> {
@@ -34,20 +35,24 @@ pub async fn read_from_point_map(
             .enumerate()
             .map(|(i, mr)| {
                 let ctx = Arc::clone(&ctx);
-                let addr = mr.address;
+                let addr_a = mr.address;
                 let value_type = mr.value_type.clone();
                 let divide_by = mr.divide_by;
                 async move {
                     // ctx Arc<Mutex<_>> 이므로, lock 후 사용
                     let mut conn = ctx.lock().await;
-                    let v = match read_from_register(&mut *conn, addr, value_type, divide_by).await
-                    {
-                        Ok(f) => f,
-                        Err(e) => {
-                            error!("Could not read from register at address {}: {:?}", addr, e);
+                    let v = 
+                        if i == 17 && !export_sum_status {
                             None
-                        }
-                    };
+                        } else {
+                            match read_from_register(&mut *conn, addr_a, value_type, divide_by).await {
+                                Ok(f) => f,
+                                Err(e) => {
+                                    error!("Could not read from register at address: {} (register: {}): {:?}", addr, addr_a, e);
+                                    None
+                                }
+                            }
+                        };
 
                     Ok((i, v)) as Result<(usize, Option<f64>)>
                 }

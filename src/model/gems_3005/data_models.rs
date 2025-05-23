@@ -14,6 +14,7 @@ pub struct MeasurementPoint {
     pub port: i32,
     pub unit_id: u8,
     pub channel: u16,
+    pub export_sum_status: bool,
 }
 
 impl MeasurementPoint {
