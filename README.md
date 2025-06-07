@@ -13,7 +13,9 @@ Planned features include support for additional protocols such as raw socket com
 - Sensor **memory map information** and **collection point configuration** are cached locally (L1 cache) at server startup to significantly improve data collection speed.
   - *(Note: "L1 cache" typically refers to CPU cache, but here it means an application-level local memory cache.)*
 - All connections to sensors and data collection processes are fully **asynchronous and parallelized**, ensuring optimal collection speed regardless of the number of sensors.
-- For example, the implemented **GEMS_3005** sensor collects data from 18 different addresses (addr) at each collection point in parallel, and the logic is optimized for this use case.
+- The implemented **GEMS_3005** sensor example collects data from 18 different addresses (addr) at each collection point in parallel, with optimized logic for this use case.
+- **Highly accurate periodic scheduling is possible via a custom-built task scheduler**.  
+  The scheduler calculates the next precise run time and aligns execution using Rust’s async timer primitives (`interval_at`), which minimizes time drift and scheduling errors even over long runtimes.
 
 ---
 
