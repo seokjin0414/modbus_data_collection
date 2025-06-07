@@ -9,7 +9,8 @@ Planned features include support for additional protocols such as raw socket com
 
 ## Features
 
-- Each collection point can act as a **collector server on a client PC**.
+- **Role:**  
+  Each collection point acts as both a sensor data collector and a server, collecting data from network-connected sensors and forwarding the collected data to a central server or service via **REST API** or **gRPC**.
 - Sensor **memory map information** and **collection point configuration** are cached locally (L1 cache) at server startup to significantly improve data collection speed.
   - *(Note: "L1 cache" typically refers to CPU cache, but here it means an application-level local memory cache.)*
 - All connections to sensors and data collection processes are fully **asynchronous and parallelized**, ensuring optimal collection speed regardless of the number of sensors.
