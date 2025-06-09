@@ -928,6 +928,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_derive",
+ "serde_json",
  "tokio",
  "tokio-modbus",
  "tower-http",

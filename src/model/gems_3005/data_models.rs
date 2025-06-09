@@ -1,10 +1,35 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 use std::net::IpAddr;
 use uuid::Uuid;
 
 use crate::model::modbus::modbus_register_models::ModbusRegister;
+
+pub const GEMS: &str = "gems";
+pub const IAQ: &str = "iaq";
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RequestBody {
+    pub sensor_type: String,
+    pub building_id: Uuid,
+    pub data: serde_json::Value,
+}
+
+impl RequestBody {
+    pub fn from_data<T>(sensor_type: &str, building_id: Uuid, data: Vec<T>) -> Result<Self> 
+    where T: serde::Serialize,
+    {
+        let json_data = serde_json::to_value(data)
+            .map_err(|e| anyhow!("Failed to convert data to json: {}", e))?;
+
+        Ok(RequestBody {
+            sensor_type: sensor_type.to_string(),
+            building_id,
+            data: json_data,
+        })
+    }
+}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct GemsMeasurementPoint {
