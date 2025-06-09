@@ -1,12 +1,12 @@
 use crate::model::gems_3005::{
-    data_models::MeasurementPoint, gems_3500_memory_map_models::Gems3500MemoryMapTable,
+    data_models::GemsMeasurementPoint, gems_3500_memory_map_models::Gems3500MemoryMapTable,
 };
 use anyhow::{Result, anyhow};
 use tokio::try_join;
 
 pub struct ServerState {
     pub gems_3500_memory_map_table: Gems3500MemoryMapTable,
-    pub measurement_point: Vec<MeasurementPoint>,
+    pub gems_measurement_point: Vec<GemsMeasurementPoint>,
 }
 
 // 이 함수에서 서버 초기화할때 초기 state를 제공. LUT(Lookup Table)/캐시 역할을 한다.
@@ -14,9 +14,9 @@ pub struct ServerState {
 pub async fn get_state() -> Result<ServerState> {
     let gems_3500_memory_map_table = tokio::spawn(async { Gems3500MemoryMapTable::from_csv() });
 
-    let measurement_point = tokio::spawn(async { MeasurementPoint::from_csv() });
+    let gems_measurement_point = tokio::spawn(async { GemsMeasurementPoint::from_csv() });
 
-    let results = try_join!(gems_3500_memory_map_table, measurement_point,);
+    let results = try_join!(gems_3500_memory_map_table, gems_measurement_point,);
 
     match results {
         Ok(res_tup) => {
@@ -30,11 +30,11 @@ pub async fn get_state() -> Result<ServerState> {
                 }
             };
 
-            let measurement_point = match res_tup.1 {
+            let gems_measurement_point = match res_tup.1 {
                 Ok(bdt) => bdt,
                 Err(e) => {
                     return Err(anyhow!(
-                        "Error while constructing MeasurementPoint for ServerState: {:?}",
+                        "Error while constructing GemsMeasurementPoint for ServerState: {:?}",
                         e
                     ));
                 }
@@ -42,7 +42,7 @@ pub async fn get_state() -> Result<ServerState> {
 
             Ok(ServerState {
                 gems_3500_memory_map_table,
-                measurement_point,
+                gems_measurement_point,
             })
         }
         Err(e) => Err(anyhow!("JoinError while constructing ServerState: {:?}", e)),
