@@ -5,7 +5,7 @@ use tracing::{error, info};
 use crate::service::{
     collect::gems_3500_modbus::collection_gems_3500_modbus,
     server::get_state::ServerState,
-    task::common_scheduling::{SECONDS_1MINUTE, schedule_task},
+    task::common_scheduling::{SECONDS_5MINUTE, schedule_task},
 };
 
 pub async fn task_init(state: Arc<ServerState>) -> Result<()> {
@@ -24,7 +24,7 @@ pub async fn task_init(state: Arc<ServerState>) -> Result<()> {
                 }
             },
             String::from("collect modbus data from client server"),
-            SECONDS_1MINUTE,
+            SECONDS_5MINUTE,
             0,
         )
         .await

@@ -8,6 +8,7 @@ use tracing::info;
 use crate::service::server::get_state::ServerState;
 
 pub const SECONDS_1MINUTE: u64 = 60;
+pub const SECONDS_5MINUTE: u64 = 300;
 
 pub async fn schedule_task<F, Fut>(
     state: Arc<ServerState>,

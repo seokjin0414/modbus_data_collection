@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::model::modbus::modbus_register_models::ModbusRegister;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct MeasurementPoint {
+pub struct GemsMeasurementPoint {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,
     pub host: IpAddr,
@@ -17,13 +17,13 @@ pub struct MeasurementPoint {
     pub export_sum_status: bool,
 }
 
-impl MeasurementPoint {
-    pub fn from_csv() -> Result<Vec<MeasurementPoint>> {
+impl GemsMeasurementPoint {
+    pub fn from_csv() -> Result<Vec<GemsMeasurementPoint>> {
         let mut rdr = csv::Reader::from_path("src/files/gems.csv")?;
 
-        let mut vec: Vec<MeasurementPoint> = Vec::new();
+        let mut vec: Vec<GemsMeasurementPoint> = Vec::new();
         for result in rdr.deserialize() {
-            let record: MeasurementPoint = result?;
+            let record: GemsMeasurementPoint = result?;
             vec.push(record);
         }
 
@@ -31,23 +31,23 @@ impl MeasurementPoint {
     }
 }
 
-pub struct CollectionSet {
+pub struct GemsCollectionSet {
     pub measurement_point_id: Uuid,
     pub building_id: Uuid,
     pub modbus_register: Vec<ModbusRegister>,
 }
 
-impl CollectionSet {
-    pub fn new(point: MeasurementPoint, registers: Vec<ModbusRegister>) -> Self {
-        CollectionSet {
+impl GemsCollectionSet {
+    pub fn new(point: GemsMeasurementPoint, registers: Vec<ModbusRegister>) -> Self {
+        GemsCollectionSet {
             measurement_point_id: point.measurement_point_id,
             building_id: point.building_id,
             modbus_register: registers,
         }
     }
 
-    pub fn to_set_data(&self, values: SetValue, recorded_at: DateTime<Utc>) -> SetData {
-        SetData {
+    pub fn to_set_data(&self, values: GemsSetValue, recorded_at: DateTime<Utc>) -> GemsSetData {
+        GemsSetData {
             building_id: self.building_id,
             measurement_point_id: self.measurement_point_id,
             wire: values.wire,
@@ -74,7 +74,7 @@ impl CollectionSet {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct SetData {
+pub struct GemsSetData {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,
     pub wire: Option<f64>,
@@ -98,7 +98,7 @@ pub struct SetData {
     pub recorded_at: DateTime<Utc>,
 }
 
-pub struct SetValue {
+pub struct GemsSetValue {
     pub wire: Option<f64>,
     pub total_a: Option<f64>,
     pub total_w: Option<f64>,
@@ -119,9 +119,9 @@ pub struct SetValue {
     pub kwh_export_sum: Option<f64>,
 }
 
-impl SetValue {
+impl GemsSetValue {
     pub fn new() -> Self {
-        SetValue {
+        GemsSetValue {
             wire: None,
             total_a: None,
             total_w: None,
