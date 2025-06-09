@@ -8,6 +8,7 @@ use std::time::Instant;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 
+use crate::service::server::udp_listener::run_udp_listener;
 use crate::service::{
     server::get_state::{ServerState, get_state},
     task::task_init::task_init,
@@ -24,6 +25,16 @@ pub async fn server_initializer() -> Result<String> {
         Ok(state) => Arc::new(state),
         Err(e) => return Err(anyhow!("Could not create ServerState: {:?}", e)),
     };
+
+    // UDP 리스너 백그라운드로 띄우기 -> iaq 데이터 수집용
+    {
+        let udp_state = state.clone();
+        tokio::spawn(async move {
+            if let Err(e) = run_udp_listener(udp_state).await {
+                tracing::error!("UDP listener error: {:?}", e);
+            }
+        });
+    }
 
     let healthcheck_router: axum::Router = axum::Router::new()
         // .route("/healthcheck/healthcheck", get(healthcheck_handler)) // simple healthcheck
