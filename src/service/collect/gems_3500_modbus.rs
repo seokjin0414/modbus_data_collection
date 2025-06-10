@@ -9,9 +9,7 @@ use tracing::error;
 
 use crate::{
     model::{
-        gems_3005::data_models::{
-            GemsCollectionSet, GemsSetData, RequestBody, GEMS
-        },
+        gems_3005::data_models::{GEMS, GemsCollectionSet, GemsSetData, RequestBody},
         modbus::modbus_register_models::ModbusRegister,
     },
     service::{
@@ -26,7 +24,7 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
     let len = measurement_points.len();
     let gems_table = state.gems_3500_memory_map_table.clone();
     let building_id = measurement_points[0].building_id;
-    
+
     let point_map: DashMap<(IpAddr, u16, u8, bool), Vec<GemsCollectionSet>> =
         measurement_points.into_iter().try_fold(
             DashMap::new(),
@@ -83,11 +81,11 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
         }
     }
     println!("futures wait spend time: {:?}", checker.elapsed());
-    
+
     let body = RequestBody::from_data(GEMS, building_id, vec)
         .map_err(|e| anyhow!("Could not create request body: {}", e))?;
-    println!("body: {:?}", body);
-    
+    // println!("body: {:?}", body);
+
     // post_axum_server_direct_data(body)
     //     .await
     //     .map_err(|e| anyhow!("Request failed: {:?}", e))?;
