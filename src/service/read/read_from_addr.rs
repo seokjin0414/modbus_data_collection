@@ -5,9 +5,8 @@ use chrono::{DateTime, Utc};
 use futures::future::join_all;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Mutex;
-use tokio::time::timeout;
+use tokio::time::{Duration, timeout};
 use tokio_modbus::{Slave, client::tcp};
 use tracing::error;
 
