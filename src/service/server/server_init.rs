@@ -8,7 +8,6 @@ use std::time::Instant;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 
-use crate::service::server::udp_listener::run_udp_listener;
 use crate::service::{
     server::get_state::{ServerState, get_state},
     task::task_init::task_init,
