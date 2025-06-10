@@ -1,5 +1,8 @@
-use crate::model::gems_3005::{
-    data_models::GemsMeasurementPoint, gems_3500_memory_map_models::Gems3500MemoryMapTable,
+use crate::model::{
+    gems_3005::{
+        data_models::GemsMeasurementPoint, gems_3500_memory_map_models::Gems3500MemoryMapTable,
+    },
+    iaq::data_models::IaqMeasurementPoint,
 };
 use anyhow::{Result, anyhow};
 use tokio::try_join;
@@ -7,6 +10,7 @@ use tokio::try_join;
 pub struct ServerState {
     pub gems_3500_memory_map_table: Gems3500MemoryMapTable,
     pub gems_measurement_point: Vec<GemsMeasurementPoint>,
+    pub iaq_measurement_point: Vec<IaqMeasurementPoint>,
 }
 
 // 이 함수에서 서버 초기화할때 초기 state를 제공. LUT(Lookup Table)/캐시 역할을 한다.
@@ -16,7 +20,13 @@ pub async fn get_state() -> Result<ServerState> {
 
     let gems_measurement_point = tokio::spawn(async { GemsMeasurementPoint::from_csv() });
 
-    let results = try_join!(gems_3500_memory_map_table, gems_measurement_point,);
+    let iaq_measurement_point = tokio::spawn(async { IaqMeasurementPoint::from_csv() });
+
+    let results = try_join!(
+        gems_3500_memory_map_table,
+        gems_measurement_point,
+        iaq_measurement_point
+    );
 
     match results {
         Ok(res_tup) => {
@@ -40,9 +50,20 @@ pub async fn get_state() -> Result<ServerState> {
                 }
             };
 
+            let iaq_measurement_point = match res_tup.2 {
+                Ok(iaqs) => iaqs,
+                Err(e) => {
+                    return Err(anyhow!(
+                        "Error while constructing IaqMeasurementPoint for ServerState: {:?}",
+                        e
+                    ));
+                }
+            };
+
             Ok(ServerState {
                 gems_3500_memory_map_table,
                 gems_measurement_point,
+                iaq_measurement_point,
             })
         }
         Err(e) => Err(anyhow!("JoinError while constructing ServerState: {:?}", e)),

@@ -12,6 +12,9 @@ mod model {
     pub mod modbus {
         pub mod modbus_register_models;
     }
+    pub mod iaq {
+        pub mod data_models;
+    }
 }
 
 mod service {
@@ -23,11 +26,15 @@ mod service {
         pub mod interpret_modbus_register;
         pub mod read_from_addr;
         pub mod read_from_register;
+        pub mod iaq {
+            pub mod util_funcs;
+        }
     }
 
     pub mod server {
         pub mod get_state;
         pub mod server_init;
+        pub mod udp_listener;
     }
 
     pub mod task {
