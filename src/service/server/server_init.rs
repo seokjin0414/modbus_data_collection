@@ -26,16 +26,6 @@ pub async fn server_initializer() -> Result<String> {
         Err(e) => return Err(anyhow!("Could not create ServerState: {:?}", e)),
     };
 
-    // UDP 리스너 백그라운드로 띄우기 -> iaq 데이터 수집용
-    {
-        let udp_state = state.clone();
-        tokio::spawn(async move {
-            if let Err(e) = run_udp_listener(udp_state).await {
-                tracing::error!("UDP listener error: {:?}", e);
-            }
-        });
-    }
-
     let healthcheck_router: axum::Router = axum::Router::new()
         // .route("/healthcheck/healthcheck", get(healthcheck_handler)) // simple healthcheck
         .with_state(Arc::clone(&state)); // system diagnosis

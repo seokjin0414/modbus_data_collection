@@ -1,10 +1,23 @@
-use crate::model::iaq::data_models::{CcmData, Header};
+use crate::{
+    model::{
+        gems_3005::data_models::{IAQ, RequestBody},
+        iaq::data_models::{CcmData, Header, IaqData},
+    },
+    service::{
+        collect::gems_3500_modbus::post_axum_server_direct_data, server::get_state::ServerState,
+        utils::create_time::utc_now_minute,
+    },
+};
 use anyhow::{Context, Result};
 use byteorder::{BigEndian, ReadBytesExt};
+use serde_json::to_value;
 use std::{
     collections::HashMap,
     io::{Cursor, Read},
+    sync::Arc,
 };
+use tracing::{error, info, warn};
+use uuid::Uuid;
 
 // 바이트 단위 읽기 유틸
 pub fn read_u8(cur: &mut Cursor<&[u8]>) -> Result<u8> {
@@ -83,4 +96,65 @@ pub fn ccm_data(registers: &[u16]) -> Result<CcmData> {
         today_usage: registers[5] as f64 / 10.0,
         this_month_usage: (registers[26] as u32) + ((registers[27] as u32) << 16),
     })
+}
+
+// 실제 IAQ 처리 로직 호출 (예: 상태에 버퍼 쌓기 / API 전송 등)
+pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16>) -> Result<()> {
+    // 1) 레지스터 → 값 맵
+    let data_map = aqm_data(&registers).context("Failed to convert IAQ registers to data map")?;
+
+    // 2) MAC으로 매핑된 IAQ 포인트 조회
+    let mappings: Vec<_> = state
+        .iaq_measurement_point
+        .iter()
+        .filter(|mp| mp.mac.eq_ignore_ascii_case(&mac))
+        .collect();
+
+    if mappings.is_empty() {
+        warn!("No IAQ measurement points found for MAC {}", mac);
+        return Ok(());
+    }
+
+    // 3) 페이로드 생성
+    let now = utc_now_minute();
+    let mut map: HashMap<Uuid, IaqData> = HashMap::new();
+
+    let building_id = mappings[0].building_id; // building_id는 모두 동일
+
+    for mp in mappings {
+        if let Some(&value) = data_map.get(&mp.iaq_type) {
+            map.insert(
+                mp.measurement_point_id,
+                IaqData {
+                    building_id: mp.building_id,
+                    measurement_point_id: mp.measurement_point_id,
+                    recorded_at: now,
+                    value: Some(value),
+                },
+            );
+        }
+    }
+
+    if map.is_empty() {
+        info!("No matching data types for MAC {} → skipping API call", mac);
+        return Ok(());
+    }
+    let records: Vec<IaqData> = map.into_iter().map(|(_, iaqdata)| iaqdata).collect();
+
+    info!("레코드: {:?}", records);
+
+    // 4) HTTP POST
+    let params = RequestBody {
+        sensor_type: IAQ.to_owned(),
+        building_id,
+        data: to_value(&records).context("Failed to convert records to JSON Value")?,
+    };
+
+    if let Err(e) = post_axum_server_direct_data(params).await {
+        error!("Error posting IAQ data to Axum server: {:?}", e);
+    } else {
+        info!("Successfully posted IAQ data");
+    }
+
+    Ok(())
 }
