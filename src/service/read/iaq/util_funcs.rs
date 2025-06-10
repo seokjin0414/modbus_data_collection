@@ -1,7 +1,10 @@
-use crate::model::iaq::data_models::Header;
+use crate::model::iaq::data_models::{CcmData, Header};
 use anyhow::{Context, Result};
 use byteorder::{BigEndian, ReadBytesExt};
-use std::io::{Cursor, Read};
+use std::{
+    collections::HashMap,
+    io::{Cursor, Read},
+};
 
 // 바이트 단위 읽기 유틸
 pub fn read_u8(cur: &mut Cursor<&[u8]>) -> Result<u8> {
@@ -41,10 +44,43 @@ pub fn valid_function_code(code: u8) -> bool {
 }
 
 // MAC 바이트 배열 → "AA:BB:CC:..." 문자열
-fn format_mac_upper(bytes: &[u8]) -> String {
+pub fn format_mac_upper(bytes: &[u8]) -> String {
     bytes
         .iter()
         .map(|b| format!("{:02X}", b))
         .collect::<Vec<_>>()
         .join(":")
+}
+
+// 실내환경 데이터 가공
+pub fn aqm_data(registers: &[u16]) -> Result<HashMap<String, f64>> {
+    if registers.len() != 64 {
+        anyhow::bail!("Expected 64 registers, got {}", registers.len());
+    }
+    let mut m = HashMap::new();
+    m.insert("temperature".to_string(), registers[0] as f64 / 10.0);
+    m.insert("humidity".to_string(), registers[1] as f64 / 10.0);
+    m.insert("co2".to_string(), registers[2] as f64);
+    m.insert("pm25".to_string(), registers[3] as f64);
+    m.insert("pm10".to_string(), registers[4] as f64);
+    m.insert("tvoc".to_string(), registers[5] as f64);
+    m.insert("lux".to_string(), registers[6] as f64);
+    Ok(m)
+}
+
+// CCM 처리 로직 호출 (예: smart plug 데이터 저장)
+pub fn ccm_data(registers: &[u16]) -> Result<CcmData> {
+    if registers.len() != 64 {
+        anyhow::bail!("Expected 64 registers, got {}", registers.len());
+    }
+
+    Ok(CcmData {
+        onoff: registers[0],
+        voltage: registers[1] as f64 / 100.0,
+        current: registers[2] as f64 / 1000.0,
+        watt: registers[3] as f64 / 10.0,
+        power_factor: registers[4] as f64 / 10.0,
+        today_usage: registers[5] as f64 / 10.0,
+        this_month_usage: (registers[26] as u32) + ((registers[27] as u32) << 16),
+    })
 }

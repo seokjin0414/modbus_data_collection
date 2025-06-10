@@ -1,42 +1,82 @@
 use crate::{
-    model::iaq::data_models::{Header, Message},
+    model::iaq::data_models::{Header, IaqData, Message},
     service::{
         read::iaq::util_funcs::{
-            read_bytes, read_str_n, read_u8, read_u16, valid_checksum, valid_function_code,
+            aqm_data, ccm_data, format_mac_upper, read_bytes, read_str_n, read_u8, read_u16,
+            valid_checksum, valid_function_code,
         },
         server::get_state::ServerState,
     },
 };
 use anyhow::{Context, Result};
 use byteorder::{BigEndian, ReadBytesExt};
+use chrono::{Timelike, Utc};
+use reqwest::Client;
 use std::io::Cursor;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::{net::UdpSocket, sync::Mutex};
-use tracing::{error, info};
-
-// MAC 바이트 배열 → "AA:BB:CC:" 문자열
-fn format_mac_upper(bytes: &[u8]) -> String {
-    bytes
-        .iter()
-        .map(|b| format!("{:02X}", b))
-        .collect::<Vec<_>>()
-        .join(":")
-}
+use tracing::{error, info, warn};
 
 // 실제 IAQ 처리 로직 호출 (예: 상태에 버퍼 쌓기 / API 전송 등)
-async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16>) -> Result<()> {
-    // TODO: state 내부의 IAQ 메모리 맵 / measurement_point lookup
-    // 예: let mapping = state.iaq_map.get(&mac)?;
-    tracing::info!(%mac, regs = registers.len(), "Received IAQ data");
-    // aqm_data 변환, 버퍼링, API flush 로직 호출
-    Ok(())
-}
+pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16>) -> Result<()> {
+    // 1) 레지스터 → 값 맵
+    let data_map = aqm_data(&registers).context("Failed to convert IAQ registers to data map")?;
 
-// 실제 CCM 처리 로직 호출 (예: smart plug 데이터 저장)
-async fn handle_ccm(_state: Arc<ServerState>, mac: String, registers: Vec<u16>) -> Result<()> {
-    tracing::info!(%mac, regs = registers.len(), "Received CCM data");
-    // ccm_data 변환 후 저장/전송
+    // 2) MAC으로 매핑된 IAQ 포인트 조회
+    let mappings: Vec<_> = state
+        .iaq_measurement_point
+        .iter()
+        .filter(|mp| mp.mac.eq_ignore_ascii_case(&mac))
+        .collect();
+
+    if mappings.is_empty() {
+        warn!("No IAQ measurement points found for MAC {}", mac);
+        return Ok(());
+    }
+
+    // 3) 페이로드 생성
+    let now = Utc::now()
+        .with_second(0)
+        .expect("second in 0..59")
+        .with_nanosecond(0)
+        .expect("nanosecond in 0..999_999_999");
+
+    let mut records = Vec::with_capacity(mappings.len());
+    for mp in mappings {
+        if let Some(&value) = data_map.get(&mp.iaq_type) {
+            records.push(IaqData {
+                building_id: mp.building_id,
+                measurement_point_id: mp.measurement_point_id,
+                recorded_at: now,
+                value: Some(value),
+            });
+        }
+    }
+
+    if records.is_empty() {
+        info!("No matching data types for MAC {} → skipping API call", mac);
+        return Ok(());
+    }
+
+    // TODO:4) HTTP POST
+    // let client = Client::new();
+    // let resp = client
+    //     .post("https://api.yourserver.com/insert_records")
+    //     .json(&records)
+    //     .send()
+    //     .await
+    //     .context("Failed to send IAQ insert_records request")?;
+
+    // if !resp.status().is_success() {
+    //     error!(
+    //         status = resp.status().as_u16(),
+    //         "IAQ insert_records API returned error"
+    //     );
+    // } else {
+    //     info!("Flushed {} IAQ records for MAC {}", records.len(), mac);
+    // }
+
     Ok(())
 }
 
@@ -110,7 +150,7 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
             }
             5 => {
                 // 스마트콘센트
-                if let Err(e) = handle_ccm(state.clone(), mac_str, msg.registers).await {
+                if let Err(e) = ccm_data(&msg.registers) {
                     error!(error = ?e, "Error handling CCM packet");
                 }
             }

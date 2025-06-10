@@ -41,11 +41,11 @@ pub struct Header {
 // 패킷 메타 정보
 #[derive(Debug)]
 pub struct Meta {
-    pub local_addr: [u8; 6],
-    pub ssid: String,
-    pub mac: [u8; 6],
-    pub device_type: u8,
-    pub cfg: u8,
+    pub local_addr: [u8; 6], // 센서 로컬 어드레스
+    pub ssid: String,        // 연결된 와이파이 정보
+    pub mac: [u8; 6],        // 센서 MAC 어드레스
+    pub device_type: u8,     // 센서 타입 / 실내환경:12, 스마트콘센트:5
+    pub cfg: u8,             // 센서 설정
 }
 
 // 패킷 메시지 본문
@@ -56,6 +56,26 @@ pub struct Message {
     pub offset: u16,
     pub registers: Vec<u16>,
     pub checksum: u16,
+}
+
+#[derive(Debug)]
+pub struct CcmData {
+    pub onoff: u16,
+    pub voltage: f64,
+    pub current: f64,
+    pub watt: f64,
+    pub power_factor: f64,
+    pub today_usage: f64,
+    pub this_month_usage: u32,
+}
+
+// api 호출시 전달값
+#[derive(Serialize, Debug)]
+pub struct IaqData {
+    pub building_id: Uuid,
+    pub measurement_point_id: Uuid,
+    pub value: Option<f64>,
+    pub recorded_at: DateTime<Utc>,
 }
 // pub struct CollectionSet {
 //     pub measurement_point_id: Uuid,
