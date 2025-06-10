@@ -1,5 +1,5 @@
 use super::read_from_register::read_from_register;
-use crate::model::gems_3005::data_models::{CollectionSet, SetData, SetValue};
+use crate::model::gems_3005::data_models::{GemsCollectionSet, GemsSetData, GemsSetValue};
 use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use futures::future::join_all;
@@ -14,9 +14,9 @@ pub async fn read_from_point_map(
     port: u16,
     unit_id: u8,
     export_sum_status: bool,
-    data: Vec<CollectionSet>,
+    data: Vec<GemsCollectionSet>,
     date: DateTime<Utc>,
-) -> Result<Vec<SetData>> {
+) -> Result<Vec<GemsSetData>> {
     let addr = SocketAddr::new(ip, port);
     let ctx = match tcp::connect_slave(addr, Slave::from(unit_id)).await {
         Ok(context) => Arc::new(Mutex::new(context)),
@@ -60,7 +60,7 @@ pub async fn read_from_point_map(
             .collect();
 
         let register_results = join_all(register_futures).await;
-        let mut values = SetValue::new();
+        let mut values = GemsSetValue::new();
 
         for res in register_results {
             let (i, v) = res?;

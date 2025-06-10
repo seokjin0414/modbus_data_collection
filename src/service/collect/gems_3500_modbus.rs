@@ -9,7 +9,9 @@ use tracing::error;
 
 use crate::{
     model::{
-        gems_3005::data_models::{CollectionSet, SetData},
+        gems_3005::data_models::{
+            GemsCollectionSet, GemsSetData, RequestBody, GEMS
+        },
         modbus::modbus_register_models::ModbusRegister,
     },
     service::{
@@ -20,14 +22,15 @@ use crate::{
 };
 
 pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()> {
-    let measurement_points = state.measurement_point.clone();
+    let measurement_points = state.gems_measurement_point.clone();
     let len = measurement_points.len();
     let gems_table = state.gems_3500_memory_map_table.clone();
-
-    let point_map: DashMap<(IpAddr, u16, u8, bool), Vec<CollectionSet>> =
+    let building_id = measurement_points[0].building_id;
+    
+    let point_map: DashMap<(IpAddr, u16, u8, bool), Vec<GemsCollectionSet>> =
         measurement_points.into_iter().try_fold(
             DashMap::new(),
-            |map, d| -> Result<DashMap<(IpAddr, u16, u8, bool), Vec<CollectionSet>>> {
+            |map, d| -> Result<DashMap<(IpAddr, u16, u8, bool), Vec<GemsCollectionSet>>> {
                 let addrs = register_from_ch(d.channel);
                 let mut registers = Vec::new();
 
@@ -40,7 +43,7 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
 
                 map.entry((d.host, d.port as u16, d.unit_id, d.export_sum_status))
                     .or_default()
-                    .push(CollectionSet::new(d, registers));
+                    .push(GemsCollectionSet::new(d, registers));
                 Ok(map)
             },
         )?;
@@ -80,9 +83,12 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
         }
     }
     println!("futures wait spend time: {:?}", checker.elapsed());
-    println!("{:?}", vec);
-
-    // post_axum_server_renewal_data(vec)
+    
+    let body = RequestBody::from_data(GEMS, building_id, vec)
+        .map_err(|e| anyhow!("Could not create request body: {}", e))?;
+    println!("body: {:?}", body);
+    
+    // post_axum_server_direct_data(body)
     //     .await
     //     .map_err(|e| anyhow!("Request failed: {:?}", e))?;
 
@@ -115,11 +121,11 @@ pub fn register_from_ch(ch: u16) -> Vec<u16> {
     addr.to_vec()
 }
 
-pub async fn post_axum_server_renewal_data(params: Vec<SetData>) -> Result<()> {
+pub async fn post_axum_server_direct_data(params: RequestBody) -> Result<()> {
     let client = Client::new();
 
     client
-        .post("")
+        .post("http://[::]:30737/data/direct-collection/create")
         .json(&params)
         .send()
         .await
