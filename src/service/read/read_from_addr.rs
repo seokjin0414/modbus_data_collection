@@ -6,8 +6,11 @@ use futures::future::join_all;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::time::{Duration, timeout};
 use tokio_modbus::{Slave, client::tcp};
 use tracing::error;
+
+const MODBUS_TIMEOUT: Duration = Duration::from_secs(1);
 
 pub async fn read_from_point_map(
     ip: IpAddr,
@@ -18,10 +21,15 @@ pub async fn read_from_point_map(
     date: DateTime<Utc>,
 ) -> Result<Vec<GemsSetData>> {
     let addr = SocketAddr::new(ip, port);
-    let ctx = match tcp::connect_slave(addr, Slave::from(unit_id)).await {
-        Ok(context) => Arc::new(Mutex::new(context)),
-        Err(e) => {
+    let connect_future = tcp::connect_slave(addr, Slave::from(unit_id));
+    let ctx = match timeout(MODBUS_TIMEOUT, connect_future).await {
+        Ok(Ok(context)) => Arc::new(Mutex::new(context)),
+        Ok(Err(e)) => {
             error!("Could not TCP connect_slave to {}: {:?}", addr, e);
+            return Ok(vec![]);
+        }
+        Err(e) => {
+            error!("TCP connect_slave to {} timed out after {:?}: {:?}", addr, MODBUS_TIMEOUT, e);
             return Ok(vec![]);
         }
     };
