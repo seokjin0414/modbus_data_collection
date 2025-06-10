@@ -124,7 +124,6 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
             arr
         };
         let _ssid = read_str_n(&mut cur, 32)?;
-        let _cfg = read_u8(&mut cur)?;
 
         let mac_bytes = {
             let b = read_bytes(&mut cur, 6)?;
@@ -132,7 +131,10 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
             arr.copy_from_slice(&b);
             arr
         };
+
         let device_type = read_u8(&mut cur)?;
+        let _cfg = read_u8(&mut cur)?;
+
         let mac_str = format_mac_upper(&mac_bytes);
 
         // 4) 메시지
