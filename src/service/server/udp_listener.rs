@@ -1,21 +1,26 @@
 use crate::{
-    model::iaq::data_models::{Header, IaqData, Message},
+    model::{
+        gems_3005::data_models::{IAQ, RequestBody},
+        iaq::data_models::{Header, IaqData, Message},
+    },
     service::{
+        collect::gems_3500_modbus::post_axum_server_direct_data,
         read::iaq::util_funcs::{
             aqm_data, ccm_data, format_mac_upper, read_bytes, read_str_n, read_u8, read_u16,
             valid_checksum, valid_function_code,
         },
         server::get_state::ServerState,
+        utils::create_time::utc_now_minute,
     },
 };
 use anyhow::{Context, Result};
-use byteorder::{BigEndian, ReadBytesExt};
-use chrono::{Timelike, Utc};
-use reqwest::Client;
-use std::io::Cursor;
-use std::net::SocketAddr;
+
+use serde_json::to_value;
+use std::{collections::HashMap, io::Cursor};
+use uuid::Uuid;
+
 use std::sync::Arc;
-use tokio::{net::UdpSocket, sync::Mutex};
+use tokio::net::UdpSocket;
 use tracing::{error, info, warn};
 
 // 실제 IAQ 처리 로직 호출 (예: 상태에 버퍼 쌓기 / API 전송 등)
@@ -36,46 +41,45 @@ pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16
     }
 
     // 3) 페이로드 생성
-    let now = Utc::now()
-        .with_second(0)
-        .expect("second in 0..59")
-        .with_nanosecond(0)
-        .expect("nanosecond in 0..999_999_999");
+    let now = utc_now_minute();
+    let mut map: HashMap<Uuid, IaqData> = HashMap::new();
 
-    let mut records = Vec::with_capacity(mappings.len());
+    let building_id = mappings[0].building_id; // building_id는 모두 동일
+
     for mp in mappings {
         if let Some(&value) = data_map.get(&mp.iaq_type) {
-            records.push(IaqData {
-                building_id: mp.building_id,
-                measurement_point_id: mp.measurement_point_id,
-                recorded_at: now,
-                value: Some(value),
-            });
+            map.insert(
+                mp.measurement_point_id,
+                IaqData {
+                    building_id: mp.building_id,
+                    measurement_point_id: mp.measurement_point_id,
+                    recorded_at: now,
+                    value: Some(value),
+                },
+            );
         }
     }
 
-    if records.is_empty() {
+    if map.is_empty() {
         info!("No matching data types for MAC {} → skipping API call", mac);
         return Ok(());
     }
+    let records: Vec<IaqData> = map.into_iter().map(|(_, iaqdata)| iaqdata).collect();
 
-    // TODO:4) HTTP POST
-    // let client = Client::new();
-    // let resp = client
-    //     .post("https://api.yourserver.com/insert_records")
-    //     .json(&records)
-    //     .send()
-    //     .await
-    //     .context("Failed to send IAQ insert_records request")?;
+    info!("레코드: {:?}", records);
 
-    // if !resp.status().is_success() {
-    //     error!(
-    //         status = resp.status().as_u16(),
-    //         "IAQ insert_records API returned error"
-    //     );
-    // } else {
-    //     info!("Flushed {} IAQ records for MAC {}", records.len(), mac);
-    // }
+    // 4) HTTP POST
+    let params = RequestBody {
+        sensor_type: IAQ.to_owned(),
+        building_id,
+        data: to_value(&records).context("Failed to convert records to JSON Value")?,
+    };
+
+    if let Err(e) = post_axum_server_direct_data(params).await {
+        error!("Error posting IAQ data to Axum server: {:?}", e);
+    } else {
+        info!("Successfully posted IAQ data");
+    }
 
     Ok(())
 }
@@ -88,6 +92,7 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
     let mut buf = [0u8; 1024];
     loop {
         let (len, peer) = socket.recv_from(&mut buf).await?;
+        println!("{}바이트 패킷 수신: {:?} from {}", len, &buf[..len], peer);
         let data = &buf[..len];
         let mut cur = Cursor::new(data);
 
@@ -111,14 +116,16 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
             continue;
         }
 
-        // 3) 메타 정보
-        let local_addr = {
+        // 3) 메타 정보 -> device_type, mac_str만 필요하나 바이트 소모는 필요해서 나머지 변수들 남겨놓음
+        let _local_addr = {
             let b = read_bytes(&mut cur, 6)?;
             let mut arr = [0u8; 6];
             arr.copy_from_slice(&b);
             arr
         };
-        let ssid = read_str_n(&mut cur, 32)?;
+        let _ssid = read_str_n(&mut cur, 32)?;
+        let _cfg = read_u8(&mut cur)?;
+
         let mac_bytes = {
             let b = read_bytes(&mut cur, 6)?;
             let mut arr = [0u8; 6];
@@ -126,7 +133,6 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
             arr
         };
         let device_type = read_u8(&mut cur)?;
-        let cfg = read_u8(&mut cur)?;
         let mac_str = format_mac_upper(&mac_bytes);
 
         // 4) 메시지
