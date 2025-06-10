@@ -73,7 +73,7 @@ pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16
         data: to_value(&records).context("Failed to convert records to JSON Value")?,
     };
 
-    println!("iaq_params: {:?}", params);
+    // println!("iaq_params: {:?}", params);
 
     if let Err(e) = post_axum_server_direct_data(params).await {
         error!("Error posting IAQ data to Axum server: {:?}", e);
@@ -92,7 +92,7 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
     let mut buf = [0u8; 1024];
     loop {
         let (len, peer) = socket.recv_from(&mut buf).await?;
-        println!("{}바이트 패킷 수신: {:?} from {}", len, &buf[..len], peer);
+        // println!("{}바이트 패킷 수신: {:?} from {}", len, &buf[..len], peer);
         let data = &buf[..len];
         let mut cur = Cursor::new(data);
 
@@ -171,7 +171,7 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
                 }
             }
             other => {
-                error!(dtype = other, "Unknown device type from {}", peer);
+                warn!(dtype = other, "Unknown device type from {}", peer);
             }
         }
     }
