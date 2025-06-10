@@ -138,14 +138,22 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
         let mac_str = format_mac_upper(&mac_bytes);
 
         // 4) 메시지
+        let version = read_u16(&mut cur)?;
+        let number_of_reg = read_u8(&mut cur)?; // 한 번만 읽기!
+        let offset = read_u16(&mut cur)?;
+
+        let registers: Vec<u16> = (0..number_of_reg)
+            .map(|_| read_u16(&mut cur).unwrap())
+            .collect();
+
+        let checksum = read_u16(&mut cur)?;
+
         let msg = Message {
-            version: read_u16(&mut cur)?,
-            count: read_u8(&mut cur)?,
-            offset: read_u16(&mut cur)?,
-            registers: (0..read_u8(&mut cur)?)
-                .map(|_| read_u16(&mut cur).unwrap())
-                .collect(),
-            checksum: read_u16(&mut cur)?,
+            version,
+            count: number_of_reg,
+            offset,
+            registers,
+            checksum,
         };
 
         // 5) 타입별 분기 처리
