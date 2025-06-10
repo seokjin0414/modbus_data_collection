@@ -141,8 +141,6 @@ pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16
     }
     let records: Vec<IaqData> = map.into_iter().map(|(_, iaqdata)| iaqdata).collect();
 
-    println!("레코드11: {:?}", records);
-
     // 4) HTTP POST
     let params = RequestBody {
         sensor_type: IAQ.to_owned(),

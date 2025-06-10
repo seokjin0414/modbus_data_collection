@@ -66,14 +66,14 @@ pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16
     }
     let records: Vec<IaqData> = map.into_iter().map(|(_, iaqdata)| iaqdata).collect();
 
-    println!("레코드22: {:?}", records);
-
     // 4) HTTP POST
     let params = RequestBody {
         sensor_type: IAQ.to_owned(),
         building_id,
         data: to_value(&records).context("Failed to convert records to JSON Value")?,
     };
+
+    println!("iaq_params: {:?}", params);
 
     if let Err(e) = post_axum_server_direct_data(params).await {
         error!("Error posting IAQ data to Axum server: {:?}", e);
