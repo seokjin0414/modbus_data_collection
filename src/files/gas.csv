@@ -1,0 +1,3 @@
+building_id,measurement_point_id,host,port,unit_id,비고
+400a0469-d1ce-42bf-a302-ff09e07aefe8,172373a8-f813-409a-a444-760afe4f4a0e,192.168.7.115,502,1,로봇 GHP 가스사용량
+d38b91c1-801a-4803-84c5-a779999f0df4,d4685d32-9338-4713-8c71-35950e2731ec,192.168.7.102,502,1,한울권 GHP 가스사용량

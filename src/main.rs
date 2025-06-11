@@ -15,11 +15,16 @@ mod model {
     pub mod iaq {
         pub mod data_models;
     }
+
+    pub mod heat {
+        pub mod data_models;
+    }
 }
 
 mod service {
     pub mod collect {
         pub mod gems_3500_modbus;
+        pub mod heat;
     }
 
     pub mod read {

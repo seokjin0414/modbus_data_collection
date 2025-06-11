@@ -1,0 +1,3 @@
+building_id,measurement_point_id,host,port,unit_id,비고
+4819adff-cc11-495e-8c35-4ca7c9c1f948,588eae34-33ac-415d-b7f1-748b682d64e3,172.168.1.103,502,1,지열 열량계 A
+4819adff-cc11-495e-8c35-4ca7c9c1f948,50a5fd54-dcff-4597-9f63-d69c4904f4a1,172.168.1.103,502,2,지열 열량계 B
