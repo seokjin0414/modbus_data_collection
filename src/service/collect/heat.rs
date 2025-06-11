@@ -1,35 +1,43 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use byteorder::{BigEndian, ByteOrder};
 use chrono::{DateTime, Utc};
 use serde_json::to_value;
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
+use std::time::Instant;
 use tokio_modbus::{
-    client::{Context as MContext, Reader},
+    client::{Context as ModbusContext, Reader},
     prelude::*,
 };
 use tracing::{error, info};
-use uuid::Uuid;
 
 use crate::{
-    model::{gems_3005::data_models::RequestBody, heat::data_models::HeatData},
+    model::{
+        gems_3005::data_models::{HEAT, RequestBody},
+        heat::data_models::HeatData,
+    },
     service::{server::get_state::ServerState, utils::create_time::utc_now_minute},
 };
 
 use super::gems_3500_modbus::post_axum_server_direct_data;
 
 pub async fn handle_heat_data(state: Arc<ServerState>) -> Result<()> {
+    let start = Instant::now();
+
     let measurement_points = state.heat_measurement_point.clone();
 
     let building_id = measurement_points[0].building_id;
 
-    // TODO: 6층에서 가져오는 외부 ip와 port (테스트용)
-    //  let ip = "220.80.128.247";
-    // let port = 6003;
-
     let mut records: Vec<HeatData> = Vec::new();
 
+    // TODO: 6층에서 가져오는 외부 ip와 port (테스트용)
+    let ip = "220.80.128.247";
+    let port = 6003;
+
     for row in &measurement_points {
-        let socket_addr = format!("{}:{}", row.host, row.port).parse()?;
+        // TODO: 실제 구동 서버에선 아래 socket_addr 활성화
+        // let socket_addr = format!("{}:{}", row.host, row.port).parse()?;
+
+        let socket_addr = format!("{}:{}", ip, port).parse()?;
         let mut client = tcp::connect_slave(socket_addr, Slave::from(row.unit_id)).await?;
 
         let instant_flow = get_modbus_data(&mut client, 0x00, 2).await?;
@@ -41,18 +49,18 @@ pub async fn handle_heat_data(state: Arc<ServerState>) -> Result<()> {
 
         let now: DateTime<Utc> = utc_now_minute();
 
-        println!(
-            "Building: {}, Measurement Point: {}, Time: {}, Instant Flow: {}, Instant Heat: {}, Supply Temp: {}, Return Temp: {}, Cumulative Flow: {}, Cumulative Heat: {}",
-            building_id,
-            row.measurement_point_id,
-            now,
-            instant_flow,
-            instant_heat,
-            supply_temperature,
-            return_temperature,
-            cumulative_flow,
-            cumulative_heat
-        );
+        // println!(
+        //     "Building: {}, Measurement Point: {}, Time: {}, Instant Flow: {}, Instant Heat: {}, Supply Temp: {}, Return Temp: {}, Cumulative Flow: {}, Cumulative Heat: {}",
+        //     building_id,
+        //     row.measurement_point_id,
+        //     now,
+        //     instant_flow,
+        //     instant_heat,
+        //     supply_temperature,
+        //     return_temperature,
+        //     cumulative_flow,
+        //     cumulative_heat
+        // );
 
         records.push(HeatData {
             building_id,
@@ -67,8 +75,7 @@ pub async fn handle_heat_data(state: Arc<ServerState>) -> Result<()> {
         })
     }
 
-    // TODO: records api 로 호출
-    // 4) HTTP POST
+    // HTTP POST
     let params = RequestBody {
         sensor_type: HEAT.to_owned(),
         building_id,
@@ -76,22 +83,29 @@ pub async fn handle_heat_data(state: Arc<ServerState>) -> Result<()> {
     };
 
     if let Err(e) = post_axum_server_direct_data(params).await {
-        error!("Error posting IAQ data to Axum server: {:?}", e);
+        error!("Error posting HEAT data to Axum server: {:?}", e);
     } else {
-        info!("Successfully posted IAQ data");
+        info!("Successfully posted HEAT data: {:?}", start.elapsed());
     }
     Ok(())
 }
 
 // 레지스터에서 수집한 데이터 포맷팅
-fn data_format(reg: &[u16]) -> f32 {
-    let high = reg[1] as u32;
-    let low = reg[0] as u32;
-    let combined = (high << 16) + low;
-    f32::from_bits(combined)
+fn data_format(reg: &[u16]) -> Result<f32> {
+    if reg.len() != 2 {
+        anyhow::bail!("Expected 2 registers, got {}", reg.len());
+    }
+    let mut buf = [0u8; 4];
+    BigEndian::write_u16(&mut buf[0..2], reg[1]);
+    BigEndian::write_u16(&mut buf[2..4], reg[0]);
+    Ok(BigEndian::read_f32(&buf))
 }
 
-async fn get_modbus_data(client: &mut MContext, start_addr: u16, length: u16) -> Result<f32> {
-    let regs = client.read_holding_registers(start_addr, length).await?;
-    Ok(data_format(&regs))
+async fn get_modbus_data(client: &mut ModbusContext, start_addr: u16, length: u16) -> Result<f32> {
+    let regs = client
+        .read_holding_registers(start_addr, length)
+        .await?
+        .map_err(|e| anyhow!("Heat Modbus read error: {:?}", e))?;
+
+    data_format(&regs)
 }

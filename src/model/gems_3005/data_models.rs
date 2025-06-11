@@ -8,6 +8,7 @@ use crate::model::modbus::modbus_register_models::ModbusRegister;
 
 pub const GEMS: &str = "gems";
 pub const IAQ: &str = "iaq";
+pub const HEAT: &str = "heat";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RequestBody {
@@ -17,8 +18,9 @@ pub struct RequestBody {
 }
 
 impl RequestBody {
-    pub fn from_data<T>(sensor_type: &str, building_id: Uuid, data: Vec<T>) -> Result<Self> 
-    where T: serde::Serialize,
+    pub fn from_data<T>(sensor_type: &str, building_id: Uuid, data: Vec<T>) -> Result<Self>
+    where
+        T: serde::Serialize,
     {
         let json_data = serde_json::to_value(data)
             .map_err(|e| anyhow!("Failed to convert data to json: {}", e))?;

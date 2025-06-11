@@ -123,7 +123,8 @@ pub async fn post_axum_server_direct_data(params: RequestBody) -> Result<()> {
     let client = Client::new();
 
     client
-        .post("http://[::]:30737/data/direct-collection/create")
+        .post("https://ems-api.reablecloud.com/data/direct-collection/test/create")
+        // .post("http://[::]:30737/data/direct-collection/create")
         .json(&params)
         .send()
         .await

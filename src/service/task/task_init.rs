@@ -4,7 +4,7 @@ use tokio::time::{Duration, timeout};
 use tracing::{error, info};
 
 use crate::service::{
-    collect::gems_3500_modbus::collection_gems_3500_modbus,
+    collect::{gems_3500_modbus::collection_gems_3500_modbus, heat::handle_heat_data},
     server::{get_state::ServerState, udp_listener::run_udp_listener},
     task::common_scheduling::{SECONDS_5MINUTE, schedule_task},
 };
@@ -47,6 +47,27 @@ pub async fn task_init(state: Arc<ServerState>) -> Result<()> {
                     }
                 },
                 String::from("collect iaq data from client server"),
+                SECONDS_5MINUTE,
+                0,
+            )
+            .await
+        });
+    }
+
+    {
+        let coroutine_state = Arc::clone(&state);
+        tokio::spawn(async move {
+            schedule_task(
+                Arc::clone(&coroutine_state),
+                move |st| async move {
+                    match handle_heat_data(st).await {
+                        Ok(_) => (),
+                        Err(e) => {
+                            error!("Could not collect heat data: {:?}", e);
+                        }
+                    }
+                },
+                String::from("collect heat modbus data from client server"),
                 SECONDS_5MINUTE,
                 0,
             )
