@@ -15,6 +15,7 @@ use std::{
     collections::HashMap,
     io::{Cursor, Read},
     sync::Arc,
+    time::Instant,
 };
 use tracing::{error, info, warn};
 use uuid::Uuid;
@@ -100,6 +101,7 @@ pub fn ccm_data(registers: &[u16]) -> Result<CcmData> {
 
 // 실제 IAQ 처리 로직 호출 (예: 상태에 버퍼 쌓기 / API 전송 등)
 pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16>) -> Result<()> {
+    let start = Instant::now();
     // 1) 레지스터 → 값 맵
     let data_map = aqm_data(&registers).context("Failed to convert IAQ registers to data map")?;
 
@@ -151,7 +153,7 @@ pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16
     if let Err(e) = post_axum_server_direct_data(params).await {
         error!("Error posting IAQ data to Axum server: {:?}", e);
     } else {
-        info!("Successfully posted IAQ data");
+        info!("Successfully posted IAQ data: {:?}", start.elapsed());
     }
 
     Ok(())
