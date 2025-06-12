@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
-use std::net::IpAddr;
+use std::{io, net::IpAddr};
 use uuid::Uuid;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -15,7 +15,19 @@ pub struct HeatMeasurementPoint {
 
 impl HeatMeasurementPoint {
     pub fn from_csv() -> Result<Vec<HeatMeasurementPoint>> {
-        let mut rdr = csv::Reader::from_path("src/files/heat.csv")?;
+        let mut rdr = match csv::Reader::from_path("src/files/heat.csv") {
+            Ok(rdr) => rdr,
+            // 파일이 없으면 빈 벡터로 처리
+            Err(e) => {
+                if let csv::ErrorKind::Io(io_err) = e.kind() {
+                    if io_err.kind() == io::ErrorKind::NotFound {
+                        return Ok(Vec::new());
+                    }
+                }
+
+                return Err(e.into());
+            }
+        };
 
         let mut vec: Vec<HeatMeasurementPoint> = Vec::new();
         for result in rdr.deserialize() {
