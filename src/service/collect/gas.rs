@@ -29,9 +29,6 @@ pub async fn handle_gas_data(state: Arc<ServerState>) -> Result<()> {
 
     let mut records: Vec<GasData> = Vec::new();
 
-    // 울진 방사능방재지휘센터 로컬 통신 정보
-    // ip = "192.168.7.102"
-
     for row in &measurement_points {
         let socket_addr = format!("{}:{}", row.host, row.port).parse()?;
 
