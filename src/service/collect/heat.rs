@@ -29,15 +29,9 @@ pub async fn handle_heat_data(state: Arc<ServerState>) -> Result<()> {
 
     let mut records: Vec<HeatData> = Vec::new();
 
-    // TODO: 6층에서 가져오는 외부 ip와 port (테스트용)
-    let ip = "220.80.128.247";
-    let port = 6003;
-
     for row in &measurement_points {
-        // TODO: 실제 구동 서버에선 아래 socket_addr 활성화
-        // let socket_addr = format!("{}:{}", row.host, row.port).parse()?;
+        let socket_addr = format!("{}:{}", row.host, row.port).parse()?;
 
-        let socket_addr = format!("{}:{}", ip, port).parse()?;
         let mut client = tcp::connect_slave(socket_addr, Slave::from(row.unit_id)).await?;
 
         let instant_flow = get_modbus_data(&mut client, 0x00, 2).await?;
