@@ -80,8 +80,8 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
             Err(_e) => {}
         }
     }
-    println!("vec: {:?}", vec);
-    println!("futures wait spend time: {:?}", checker.elapsed());
+    // println!("vec: {:?}", vec);
+    // println!("futures wait spend time: {:?}", checker.elapsed());
 
     let body = RequestBody::from_data(GEMS, building_id, vec)
         .map_err(|e| anyhow!("Could not create request body: {}", e))?;

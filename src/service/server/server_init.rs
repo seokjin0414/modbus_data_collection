@@ -17,7 +17,7 @@ use crate::service::{
 pub async fn server_initializer() -> Result<String> {
     let start = Instant::now();
 
-    let hosting_address = SocketAddr::from_str("[::]:30000")
+    let hosting_address = SocketAddr::from_str("[::]:31000")
         .map_err(|e| anyhow!("Could not parse socket address: {:?}", e))?;
 
     let state: Arc<ServerState> = match get_state().await {
