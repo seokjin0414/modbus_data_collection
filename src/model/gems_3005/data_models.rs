@@ -9,6 +9,7 @@ use crate::model::modbus::modbus_register_models::ModbusRegister;
 pub const GEMS: &str = "gems";
 pub const IAQ: &str = "iaq";
 pub const HEAT: &str = "heat";
+pub const GAS: &str = "gas";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RequestBody {

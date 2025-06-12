@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 use std::net::IpAddr;

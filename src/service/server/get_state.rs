@@ -1,4 +1,5 @@
 use crate::model::{
+    gas::data_models::GasMeasurementPoint,
     gems_3005::{
         data_models::GemsMeasurementPoint, gems_3500_memory_map_models::Gems3500MemoryMapTable,
     },
@@ -13,6 +14,7 @@ pub struct ServerState {
     pub gems_measurement_point: Vec<GemsMeasurementPoint>,
     pub iaq_measurement_point: Vec<IaqMeasurementPoint>,
     pub heat_measurement_point: Vec<HeatMeasurementPoint>,
+    pub gas_measurement_point: Vec<GasMeasurementPoint>,
 }
 
 // 이 함수에서 서버 초기화할때 초기 state를 제공. LUT(Lookup Table)/캐시 역할을 한다.
@@ -26,11 +28,14 @@ pub async fn get_state() -> Result<ServerState> {
 
     let heat_measurement_point = tokio::spawn(async { HeatMeasurementPoint::from_csv() });
 
+    let gas_measurement_point = tokio::spawn(async { GasMeasurementPoint::from_csv() });
+
     let results = try_join!(
         gems_3500_memory_map_table,
         gems_measurement_point,
         iaq_measurement_point,
-        heat_measurement_point
+        heat_measurement_point,
+        gas_measurement_point
     );
 
     match results {
@@ -75,11 +80,22 @@ pub async fn get_state() -> Result<ServerState> {
                 }
             };
 
+            let gas_measurement_point = match res_tup.4 {
+                Ok(gas) => gas,
+                Err(e) => {
+                    return Err(anyhow!(
+                        "Error while constructing GasMeasurementPoint for ServerState: {:?}",
+                        e
+                    ));
+                }
+            };
+
             Ok(ServerState {
                 gems_3500_memory_map_table,
                 gems_measurement_point,
                 iaq_measurement_point,
                 heat_measurement_point,
+                gas_measurement_point,
             })
         }
         Err(e) => Err(anyhow!("JoinError while constructing ServerState: {:?}", e)),

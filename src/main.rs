@@ -19,10 +19,15 @@ mod model {
     pub mod heat {
         pub mod data_models;
     }
+
+    pub mod gas {
+        pub mod data_models;
+    }
 }
 
 mod service {
     pub mod collect {
+        pub mod gas;
         pub mod gems_3500_modbus;
         pub mod heat;
     }
