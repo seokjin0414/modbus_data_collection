@@ -25,6 +25,11 @@ pub async fn handle_heat_data(state: Arc<ServerState>) -> Result<()> {
 
     let measurement_points = state.heat_measurement_point.clone();
 
+    if measurement_points.is_empty() {
+        info!("No heat measurement points—skipping data collection");
+        return Ok(());
+    }
+
     let building_id = measurement_points[0].building_id;
 
     let mut records: Vec<HeatData> = Vec::new();

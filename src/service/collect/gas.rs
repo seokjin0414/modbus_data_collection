@@ -25,6 +25,11 @@ pub async fn handle_gas_data(state: Arc<ServerState>) -> Result<()> {
 
     let measurement_points = state.gas_measurement_point.clone();
 
+    if measurement_points.is_empty() {
+        info!("No gas measurement points—skipping data collection");
+        return Ok(());
+    }
+
     let building_id = measurement_points[0].building_id;
 
     let mut records: Vec<GasData> = Vec::new();
