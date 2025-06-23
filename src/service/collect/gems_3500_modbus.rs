@@ -5,8 +5,8 @@ use reqwest::Client;
 use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::error;
-use tracing::log::warn;
+use tracing::{error, warn};
+
 use crate::{
     model::{
         gems_3005::data_models::{GEMS, GemsCollectionSet, GemsSetData, RequestBody},
