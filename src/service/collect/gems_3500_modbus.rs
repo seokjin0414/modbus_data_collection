@@ -6,7 +6,7 @@ use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::error;
-
+use tracing::log::warn;
 use crate::{
     model::{
         gems_3005::data_models::{GEMS, GemsCollectionSet, GemsSetData, RequestBody},
@@ -21,6 +21,12 @@ use crate::{
 
 pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()> {
     let measurement_points = state.gems_measurement_point.clone();
+    
+    if measurement_points.is_empty() {
+        warn!("No GEMS measurement points found");
+        return Ok(());
+    }
+    
     let len = measurement_points.len();
     let gems_table = state.gems_3500_memory_map_table.clone();
     let building_id = measurement_points[0].building_id;
@@ -80,12 +86,11 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
             Err(_e) => {}
         }
     }
-    // println!("vec: {:?}", vec);
     // println!("futures wait spend time: {:?}", checker.elapsed());
 
     let body = RequestBody::from_data(GEMS, building_id, vec)
         .map_err(|e| anyhow!("Could not create request body: {}", e))?;
-    // println!("body: {:?}", body);
+    
     // post_axum_server_direct_data(body)
     //     .await
     //     .map_err(|e| anyhow!("Request failed: {:?}", e))?;

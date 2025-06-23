@@ -1,3 +1,4 @@
+use std::io;
 use anyhow::{Result, anyhow};
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
@@ -47,7 +48,18 @@ pub struct GemsMeasurementPoint {
 
 impl GemsMeasurementPoint {
     pub fn from_csv() -> Result<Vec<GemsMeasurementPoint>> {
-        let mut rdr = csv::Reader::from_path("src/files/gems.csv")?;
+        let mut rdr = match csv::Reader::from_path("src/files/gems.csv") {
+            Ok(rdr) => rdr,
+            Err(e) => {
+                if let csv::ErrorKind::Io(io_err) = e.kind() {
+                    if io_err.kind() == io::ErrorKind::NotFound {
+                        return Ok(Vec::new());
+                    }
+                }
+                
+                return Err(anyhow!("Failed to read csv file: {}", e))
+            }
+        };
 
         let mut vec: Vec<GemsMeasurementPoint> = Vec::new();
         for result in rdr.deserialize() {
