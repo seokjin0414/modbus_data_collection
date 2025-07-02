@@ -72,7 +72,7 @@ pub struct CcmData {
 }
 
 // api 호출시 전달값
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct IaqData {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,

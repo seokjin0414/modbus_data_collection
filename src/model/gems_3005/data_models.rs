@@ -56,7 +56,7 @@ impl GemsMeasurementPoint {
                         return Ok(Vec::new());
                     }
                 }
-                
+
                 return Err(anyhow!("Failed to read csv file: {}", e))
             }
         };
@@ -113,7 +113,7 @@ impl GemsCollectionSet {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct GemsSetData {
     pub building_id: Uuid,
     pub measurement_point_id: Uuid,
@@ -139,10 +139,10 @@ pub struct GemsSetData {
 }
 
 pub struct GemsSetValue {
-    pub wire: Option<f64>,
     pub total_a: Option<f64>,
     pub total_w: Option<f64>,
     pub total_pf: Option<f64>,
+    pub wire: Option<f64>,
     pub r_v: Option<f64>,
     pub r_a: Option<f64>,
     pub r_w: Option<f64>,

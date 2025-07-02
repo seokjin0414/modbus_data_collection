@@ -1,6 +1,6 @@
 use super::read_from_register::read_from_register;
 use crate::model::gems_3005::data_models::{GemsCollectionSet, GemsSetData, GemsSetValue};
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use futures::future::join_all;
 use std::net::{IpAddr, SocketAddr};
@@ -10,7 +10,7 @@ use tokio::time::{Duration, timeout};
 use tokio_modbus::{Slave, client::tcp};
 use tracing::error;
 
-const MODBUS_TIMEOUT: Duration = Duration::from_secs(1);
+const MODBUS_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub async fn read_from_point_map(
     ip: IpAddr,
@@ -29,7 +29,10 @@ pub async fn read_from_point_map(
             return Ok(vec![]);
         }
         Err(e) => {
-            error!("TCP connect_slave to {} timed out after {:?}: {:?}", addr, MODBUS_TIMEOUT, e);
+            error!(
+                "TCP connect_slave to {} timed out after {:?}: {:?}",
+                addr, MODBUS_TIMEOUT, e
+            );
             return Ok(vec![]);
         }
     };
@@ -49,7 +52,7 @@ pub async fn read_from_point_map(
                 async move {
                     // ctx Arc<Mutex<_>> 이므로, lock 후 사용
                     let mut conn = ctx.lock().await;
-                    let v = 
+                    let v =
                         if i == 17 && !export_sum_status {
                             None
                         } else {

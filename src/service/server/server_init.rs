@@ -1,6 +1,12 @@
+use crate::service::server::health_check::health_check;
+use crate::service::{
+    server::get_state::{ServerState, get_state},
+    task::task_init::task_init,
+};
 use anyhow::{Result, anyhow};
 use axum::extract::DefaultBodyLimit;
 use axum::http::{HeaderName, header};
+use axum::routing::get;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -8,16 +14,11 @@ use std::time::Instant;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 
-use crate::service::{
-    server::get_state::{ServerState, get_state},
-    task::task_init::task_init,
-};
-
 #[inline]
 pub async fn server_initializer() -> Result<String> {
     let start = Instant::now();
 
-    let hosting_address = SocketAddr::from_str("[::]:31000")
+    let hosting_address = SocketAddr::from_str("[::]:30000")
         .map_err(|e| anyhow!("Could not parse socket address: {:?}", e))?;
 
     let state: Arc<ServerState> = match get_state().await {
@@ -26,6 +27,7 @@ pub async fn server_initializer() -> Result<String> {
     };
 
     let healthcheck_router: axum::Router = axum::Router::new()
+        .route("/healthcheck", get(health_check))
         // .route("/healthcheck/healthcheck", get(healthcheck_handler)) // simple healthcheck
         .with_state(Arc::clone(&state)); // system diagnosis
 
@@ -79,14 +81,16 @@ pub async fn server_initializer() -> Result<String> {
         start.elapsed()
     );
 
+    info!("###### server version test- 1.0.3");
+
     // 여기서 앱을 Axum으로 서빙.
     // Serve app with Axum here.
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .await
-    .map_err(|e| anyhow!("Axum could not serve app: {:?}", e))?;
+        .await
+        .map_err(|e| anyhow!("Axum could not serve app: {:?}", e))?;
 
     Ok(String::from("Server exiting."))
 }

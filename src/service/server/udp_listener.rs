@@ -1,6 +1,10 @@
 use crate::{
-    model::iaq::data_models::{Header, Message},
+    model::{
+        gems_3005::data_models::{IAQ, RequestBody},
+        iaq::data_models::{Header, IaqData, Message},
+    },
     service::{
+        collect::gems_3500_modbus::post_axum_server_direct_data,
         read::iaq::util_funcs::{
             ccm_data, format_mac_upper, handle_iaq, read_bytes, read_str_n, read_u8, read_u16,
             valid_checksum, valid_function_code,
@@ -8,9 +12,11 @@ use crate::{
         server::get_state::ServerState,
     },
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
+use serde_json::to_value;
+use uuid::Uuid;
 
-use std::io::Cursor;
+use std::{collections::HashMap, io::Cursor};
 
 use std::sync::Arc;
 use tokio::{
@@ -21,10 +27,12 @@ use tracing::{error, info, warn};
 
 // UDP 리스너: 5005 포트로 들어오는 패킷 파싱 & 처리
 pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
-    let listen_future = async {
-        let socket = UdpSocket::bind("0.0.0.0:5005").await?;
-        info!("UDP listener bound to 0.0.0.0:5005");
+    let mut map: HashMap<Uuid, IaqData> = HashMap::new();
 
+    let socket = UdpSocket::bind("0.0.0.0:5005").await?;
+    info!("UDP listener bound to 0.0.0.0:5005");
+
+    let listen_future = async {
         let mut buf = [0u8; 1024];
         loop {
             let (len, peer) = socket.recv_from(&mut buf).await?;
@@ -96,8 +104,17 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
             match device_type {
                 12 => {
                     // IAQ 센서
-                    if let Err(e) = handle_iaq(state.clone(), mac_str, msg.registers).await {
-                        error!(error = ?e, "Error handling IAQ packet");
+                    match handle_iaq(state.clone(), mac_str, msg.registers).await {
+                        Ok(partial_map) => {
+                            for (mp_id, iaqdata) in partial_map {
+                                map.entry(mp_id)
+                                    .and_modify(|existing| *existing = iaqdata.clone())
+                                    .or_insert(iaqdata);
+                            }
+                        }
+                        Err(e) => {
+                            error!(error = ?e, "Error handling IAQ packet");
+                        }
                     }
                 }
                 5 => {
@@ -116,6 +133,26 @@ pub async fn run_udp_listener(state: Arc<ServerState>) -> Result<()> {
         Ok(inner_res) => inner_res, // 30초 안에 에러가 나면 그 에러를 그대로 리턴
         Err(_) => {
             info!("UDP listener timed out after 30s");
+
+            if map.is_empty() {
+                info!("No matching data types → skipping API call");
+                return Ok(());
+            }
+
+            let records: Vec<IaqData> = map.into_iter().map(|(_, iaqdata)| iaqdata).collect();
+
+            // 4) HTTP POST
+            let params = RequestBody {
+                sensor_type: IAQ.to_owned(),
+                building_id: records[0].building_id,
+                data: to_value(&records).context("Failed to convert records to JSON Value")?,
+            };
+
+            if let Err(e) = post_axum_server_direct_data(params).await {
+                error!("Error posting IAQ data to Axum server: {:?}", e);
+            } else {
+                info!("Successfully posted IAQ data");
+            }
             Ok(())
         }
     }
