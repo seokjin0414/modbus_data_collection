@@ -1,23 +1,16 @@
 use crate::{
-    model::{
-        gems_3005::data_models::{IAQ, RequestBody},
-        iaq::data_models::{CcmData, Header, IaqData},
-    },
-    service::{
-        collect::gems_3500_modbus::post_axum_server_direct_data, server::get_state::ServerState,
-        utils::create_time::utc_now_minute,
-    },
+    model::iaq::data_models::{CcmData, Header, IaqData},
+    service::{server::get_state::ServerState, utils::create_time::utc_now_minute},
 };
 use anyhow::{Context, Result};
 use byteorder::{BigEndian, ReadBytesExt};
-use serde_json::to_value;
+
 use std::{
     collections::HashMap,
     io::{Cursor, Read},
     sync::Arc,
-    time::Instant,
 };
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 // 바이트 단위 읽기 유틸
@@ -78,7 +71,7 @@ pub fn aqm_data(registers: &[u16]) -> Result<HashMap<String, f64>> {
     m.insert("pm25".to_string(), registers[3] as f64);
     m.insert("pm10".to_string(), registers[4] as f64);
     m.insert("tvoc".to_string(), registers[5] as f64);
-    m.insert("lux".to_string(), registers[6] as f64);
+    m.insert("illuminance".to_string(), registers[6] as f64);
     Ok(m)
 }
 
@@ -100,8 +93,11 @@ pub fn ccm_data(registers: &[u16]) -> Result<CcmData> {
 }
 
 // 실제 IAQ 처리 로직 호출 (예: 상태에 버퍼 쌓기 / API 전송 등)
-pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16>) -> Result<()> {
-    let start = Instant::now();
+pub async fn handle_iaq(
+    state: Arc<ServerState>,
+    mac: String,
+    registers: Vec<u16>,
+) -> Result<HashMap<Uuid, IaqData>> {
     // 1) 레지스터 → 값 맵
     let data_map = aqm_data(&registers).context("Failed to convert IAQ registers to data map")?;
 
@@ -114,14 +110,14 @@ pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16
 
     if mappings.is_empty() {
         warn!("No IAQ measurement points found for MAC {}", mac);
-        return Ok(());
+        return Ok(HashMap::new());
     }
 
     // 3) 페이로드 생성
     let now = utc_now_minute();
     let mut map: HashMap<Uuid, IaqData> = HashMap::new();
 
-    let building_id = mappings[0].building_id; // building_id는 모두 동일
+    //  let building_id = mappings[0].building_id; // building_id는 모두 동일
 
     for mp in mappings {
         if let Some(&value) = data_map.get(&mp.iaq_type) {
@@ -139,22 +135,8 @@ pub async fn handle_iaq(state: Arc<ServerState>, mac: String, registers: Vec<u16
 
     if map.is_empty() {
         info!("No matching data types for MAC {} → skipping API call", mac);
-        return Ok(());
-    }
-    let records: Vec<IaqData> = map.into_iter().map(|(_, iaqdata)| iaqdata).collect();
-
-    // 4) HTTP POST
-    let params = RequestBody {
-        sensor_type: IAQ.to_owned(),
-        building_id,
-        data: to_value(&records).context("Failed to convert records to JSON Value")?,
-    };
-
-    if let Err(e) = post_axum_server_direct_data(params).await {
-        error!("Error posting IAQ data to Axum server: {:?}", e);
-    } else {
-        info!("Successfully posted IAQ data: {:?}", start.elapsed());
+        return Ok(HashMap::new());
     }
 
-    Ok(())
+    Ok(map)
 }

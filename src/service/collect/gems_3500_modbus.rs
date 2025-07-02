@@ -4,12 +4,13 @@ use futures::stream::{FuturesUnordered, StreamExt};
 use reqwest::Client;
 use std::net::IpAddr;
 use std::sync::Arc;
-use std::time::Instant;
 use tracing::{error, warn};
 
 use crate::{
     model::{
-        gems_3005::data_models::{GEMS, GemsCollectionSet, GemsSetData, RequestBody},
+        gems_3005::data_models::{
+            GemsCollectionSet, GemsSetData, RequestBody, GEMS,
+        },
         modbus::modbus_register_models::ModbusRegister,
     },
     service::{
@@ -21,12 +22,12 @@ use crate::{
 
 pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()> {
     let measurement_points = state.gems_measurement_point.clone();
-    
+
     if measurement_points.is_empty() {
         warn!("No GEMS measurement points found");
         return Ok(());
     }
-    
+
     let len = measurement_points.len();
     let gems_table = state.gems_3500_memory_map_table.clone();
     let building_id = measurement_points[0].building_id;
@@ -77,7 +78,7 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
     }
 
     let mut vec = Vec::with_capacity(len);
-    let checker = Instant::now();
+
     while let Some(res) = futures.next().await {
         match res {
             Ok(set_data_list) => {
@@ -86,14 +87,13 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
             Err(_e) => {}
         }
     }
-    // println!("futures wait spend time: {:?}", checker.elapsed());
 
     let body = RequestBody::from_data(GEMS, building_id, vec)
         .map_err(|e| anyhow!("Could not create request body: {}", e))?;
-    
-    // post_axum_server_direct_data(body)
-    //     .await
-    //     .map_err(|e| anyhow!("Request failed: {:?}", e))?;
+
+    post_axum_server_direct_data(body)
+        .await
+        .map_err(|e| anyhow!("Request failed: {:?}", e))?;
 
     Ok(())
 }
@@ -128,7 +128,7 @@ pub async fn post_axum_server_direct_data(params: RequestBody) -> Result<()> {
     let client = Client::new();
 
     client
-        .post("http://[::]:30737/data/direct-collection/create")
+        .post("http://[::]:30737/data/direct-collection/test/create")
         .json(&params)
         .send()
         .await

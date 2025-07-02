@@ -29,7 +29,7 @@ where
     let now = Utc::now();
     let first_run_time = now
         + chrono::Duration::from_std(total_initial_delay)
-            .map_err(|e| anyhow!("Conversion failed: {:?}", e))?;
+        .map_err(|e| anyhow!("Conversion failed: {:?}", e))?;
 
     info!(
         "{:?}",

@@ -78,17 +78,6 @@ pub async fn handle_gas_data(state: Arc<ServerState>) -> Result<()> {
 
         let now: DateTime<Utc> = utc_now_minute();
 
-        println!(
-            "Building: {}, Measurement Point: {}, Time: {}, Instant Flow: {},  Cumulative Flow: {}, Pressure: {}, Temp: {}",
-            building_id,
-            row.measurement_point_id,
-            now,
-            instant_flow,
-            cumulative_flow,
-            pressure,
-            temp
-        );
-
         records.push(GasData {
             building_id,
             measurement_point_id: row.measurement_point_id,
