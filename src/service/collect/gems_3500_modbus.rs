@@ -5,6 +5,7 @@ use reqwest::Client;
 use std::net::IpAddr;
 use std::sync::Arc;
 use tracing::{error, warn};
+use tokio::time::{Duration, timeout};
 
 use crate::{
     model::{
@@ -19,6 +20,8 @@ use crate::{
         utils::create_time::{MINUTE, utc_now_ago},
     },
 };
+
+const READ_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()> {
     let measurement_points = state.gems_measurement_point.clone();
@@ -65,11 +68,18 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
         let data = value;
 
         let future = async move {
-            match read_from_point_map(ip, port, unit_id, export_sum_status, data, date).await {
-                Ok(result) => Ok(result),
-                Err(e) => {
+            match timeout(
+                READ_TIMEOUT,
+                read_from_point_map(ip, port, unit_id, export_sum_status, data, date)
+            ).await {
+                Ok(Ok(result)) => Ok(result),
+                Ok(Err(e)) => {
                     error!("Failed to read from {}:{} - {:?}", ip, port, e);
                     Err(e)
+                },
+                Err(e) => {
+                    error!("Timeout while read_from_point_map from {}:{} - {:?}", ip, port, e);
+                    Err(anyhow!("Timeout for {}:{}", ip, port))
                 }
             }
         };
@@ -90,10 +100,10 @@ pub async fn collection_gems_3500_modbus(state: &Arc<ServerState>) -> Result<()>
 
     let body = RequestBody::from_data(GEMS, building_id, vec)
         .map_err(|e| anyhow!("Could not create request body: {}", e))?;
-
-    post_axum_server_direct_data(body)
-        .await
-        .map_err(|e| anyhow!("Request failed: {:?}", e))?;
+    
+    // post_axum_server_direct_data(body)
+    //     .await
+    //     .map_err(|e| anyhow!("Request failed: {:?}", e))?;
 
     Ok(())
 }
